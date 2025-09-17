@@ -1,0 +1,8 @@
+MLX90640.i
+MLX90640.py
+mlx90640-python.cpp
+setup.py
+MLX90640.egg-info/PKG-INFO
+MLX90640.egg-info/SOURCES.txt
+MLX90640.egg-info/dependency_links.txt
+MLX90640.egg-info/top_level.txt

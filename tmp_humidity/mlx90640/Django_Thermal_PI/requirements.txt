@@ -1,0 +1,25 @@
+# Django Framework
+Django==4.0.4
+
+# HTTP Requests
+requests==2.31.0
+
+# Image Processing
+Pillow==10.0.0
+opencv-python==4.8.0.76
+
+# Data Analysis and Plotting
+numpy==1.24.4
+matplotlib==3.7.2
+
+# Persian/Jalali Date Support
+jdatetime==4.1.0
+
+# Timezone Support (for Python < 3.9, included in Python 3.9+)
+backports.zoneinfo==0.2.1;python_version<"3.9"
+
+# Optional: For CORS support (currently commented in settings)
+# django-cors-headers==4.3.1
+
+# Optional: For SSL server support (currently commented in settings)
+# django-sslserver==0.22

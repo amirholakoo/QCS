@@ -1,0 +1,14 @@
+[Unit]
+Description=Django Thermal Server
+After=network.target
+
+[Service]
+User=admin
+WorkingDirectory=/home/admin/mlx90640_v1
+Environment="PATH=/home/admin/mlx90640_v1/env/bin"
+ExecStart=/home/admin/mlx90640_v1/env/bin/python3 manage.py runserver 0.0.0.0:6002
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
