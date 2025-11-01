@@ -1,0 +1,1153 @@
+{% load static %}
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>داشبورد دما و رطوبت</title>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <script src="{% static 'base/js/jquery.min.js' %}"></script>
+    <style>
+        @font-face {
+            font-family: "Yekan";
+            src: url("{% static 'base/fonts/1cdce741b89d94b75c1b52dfbfc7bc3b1eb1a8d2ecb9da71753e17219a1b8057.woff2' %}") format("woff2");
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: "Yekan";
+            src: url("{% static 'base/fonts/8b3d4ccc94807967874f481b0ea82d0f26cda739c2fad3b923f28d8915af064f.woff2' %}") format("woff2");
+            font-weight: 700;
+            font-style: normal;
+        }
+        :root { --bg:#0f1115; --muted:#2a2f3a; --text:#e7eaee; --sub:#a6adbb; --accent:#4f8cff; --card:#151924; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            direction: rtl;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Yekan Bakh', Tahoma, 'Segoe UI', Arial, sans-serif;
+        }
+
+        .app { display: flex; flex-direction: column; min-height: 100vh; }
+        .toolbar {
+            display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+            padding: 12px 16px; background: var(--card); border-bottom: 1px solid var(--muted);
+        }
+        .toolbar .left, .toolbar .right { display: flex; gap: 10px; align-items: center; }
+        .toolbar h3 { margin: 0 0 0 8px; font-weight: 600; font-size: 16px; color: var(--text); }
+        .toggle { display: inline-flex; gap: 6px; align-items: center; background: #10131a; border: 1px solid var(--muted); border-radius: 8px; padding: 6px 10px; color: var(--sub); cursor: pointer; }
+        .toolbar button { background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+        .toolbar button.secondary { background: transparent; border: 1px solid var(--muted); color: var(--text); }
+
+        .content { 
+            padding: 16px;
+            display: flex;
+        }
+        @media (max-width: 1100px) { 
+            .content {
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        .panel { 
+            background: var(--card);
+            border: 1px solid var(--muted);
+            border-radius: 12px;
+            padding: 14px;
+            width: {% if "personnel" in request.path %}97%;{% else %}100%;{% endif %};
+            margin: 6px;
+            min-width: 40%;
+        }
+        .hidden { display: none !important; }
+
+        #temperature-grid {
+            display: none;
+            grid-template-columns: repeat(32, 15px);
+            grid-template-rows: repeat(24, 15px);
+            gap: 2px;
+        }
+
+        .cell {
+            font-size: 10px;
+            text-align: center;
+            color: #afafaf;
+            border: 1px solid #dedede;
+            width: 15px;
+            height: 15px;
+            line-height: 13px;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        #info-box, #humidity-box {
+            font-size: 18px;
+            background: #111623;
+            padding: 10px 12px;
+            border: 1px solid var(--muted);
+            width: fit-content;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        #probes-container.alarm-mode .probe-card {
+            background: rgba(255, 68, 68, 0.1) !important;
+            border-color: #ff6666 !important;
+            color: #ffffff !important;
+            font-weight: bold;
+        }
+        #probes-container.alarm-mode .probe-card .probe-humidity {
+            color: #ff6666 !important;
+        }
+        
+        @keyframes alarm-blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.7; }
+        }
+        
+        .alarm-message {
+            color: #842029;
+            background-color: #f8d7da;
+            border-color: #f5c2c7;
+            padding: 1rem 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+
+        .highlight {
+            background-color: orange !important;
+            color: black;
+        }
+
+        #highlight-box {
+            position: absolute;
+            border: 2px solid #ffa500;
+            background-color: rgba(255, 165, 0, 0.3);
+            display: none;
+            pointer-events: none;
+        }
+        .prob-hilight {
+            position: absolute;
+            border: 2px solid #ffffff;
+            background-color: rgba(255, 165, 0, 0.3);
+            box-sizing: border-box;
+            transform: translate(-1px, -1px); /* Center adjust for border */
+        }
+        /* Probes UI */
+        .probes-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0 6px 0;
+        }
+        .probes-controls input {
+            height: 36px;
+            padding: 0 10px;
+        }
+        .probes-controls button {
+            height: 36px;
+            padding: 0 14px;
+            cursor: pointer;
+        }
+        #probes-container {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+            margin-bottom: 10px;
+            width: 100%;
+            justify-content: space-between !important;
+            direction: ltr;
+        }
+        .probe-card {
+            background: #111623;
+            border: 1px solid var(--muted);
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+            width: 100% !important;
+            position: relative;
+        }
+        .probe-checkbox {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .probe-title {
+            font-size: 12px;
+            color: var(--sub);
+            margin-bottom: 6px;
+            margin-top: 8px;
+        }
+        .probe-humidity {
+            font-size: 20px;
+            font-weight: 700;
+            color: #00d2ee !important;
+            margin-bottom: 4px;
+        }
+        .probe-temp {
+            font-size: 14px;
+            color: #cfd6e4;
+            {% if "personnel" in request.path %}display: none;{% endif %}
+        }
+        .average-display {
+            background: #111623;
+            border: 1px solid var(--muted);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .average-display input {
+            flex: 1;
+            height: 50px;
+            padding: 10px;
+            background: var(--card);
+            border: 0;
+            border-radius: 6px;
+            color: var(--text);
+            text-align: center;
+            font-size: 30px;
+            direction: ltr;
+        }
+        .average-display label {
+            color: var(--sub);
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .image-wrap { position: relative; width: 100%; }
+        #Thermal_Img { width: 100%; height: auto; max-height: 72vh; border-radius: 8px; display: block; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="toolbar">
+            <div class="left">
+                <h3>داشبورد دما و رطوبت</h3>
+                <label class="toggle"><input type="checkbox" id="toggle-image"> <span>نمایش تصویر</span></label>
+                <label {% if "personnel" in request.path %}style="display: none;"{% endif %} class="toggle"><input type="checkbox" id="toggle-grid"> <span>نمایش جدول دما</span></label>
+            </div>
+            <div class="right">
+                <button id="pause-btn" onclick="togglePause()">توقف</button>
+                <button {% if "personnel" in request.path %}style="display: none;"{% endif %} class="secondary" onclick="saveLog()">ذخیره تصویر</button>
+                <button class="secondary" onclick="location.reload()">به‌روزرسانی دستی</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="panel">
+                <div style="display: flex;{% if "personnel" in request.path %}display: none !important;{% endif %}">
+                    <div id="info-box">0 °C</div>
+                    <div style="margin-right: 8px;" id="humidity-box">0 %</div>
+                </div>
+                <div id="alarm-message" class="alarm-message">
+                    سیستم به حالت دستی انتقال یافت                </div>
+                <input type="text" id="formula-input" list="suggestions" value="-0.01632 * temp * temp + 1.30838 * temp - 18.36" style="{% if "personnel" in request.path %}display: none;{% endif %}width:100%;height:40px;margin-bottom:10px">
+                <datalist id="suggestions" {% if "personnel" in request.path %}style="display: none;"{% endif %}>
+                    {% for x in formuls %}
+                    <option value="{{x}}">
+                    {% endfor %}
+                </datalist>
+                <div class="probes-controls" {% if "personnel" in request.path %}style="display: none;"{% endif %}>
+                    <label for="probes-input">تعداد المان‌ها:</label>
+                    <input type="number" id="probes-input" min="1" value="8" placeholder="مثلا 4" style="width:120px">
+                    <button id="probes-apply-btn" type="button">ایجاد</button>
+                    <span style="font-size:12px;color:#a6adbb">رطوبت از دما و فرمول فعال محاسبه می‌شود.</span>
+                </div>
+                <div id="probes-container" ></div>
+                <div class="average-display">
+                    <label>میانگین دما 
+                        {% if not "personnel" in request.path %}
+                        و رطوبت
+                        {% endif %}
+                        المان‌های انتخاب شده:</label>
+                    <input type="text" id="average-display-input" readonly placeholder="هیچ المانی انتخاب نشده">
+                </div>
+                {% if "personnel" in request.path %}
+                <div class="panel hidden" id="image-panel">
+                    <div class="image-wrap">
+                        <img src="{% static 'thermal_image.jpg' %}" id="Thermal_Img">
+                        <div id="highlight-box"></div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if log %}
+                <h5 style="margin: 14px 0 8px 0;{% if "personnel" in request.path %}display: none;{% endif %}">لاگ‌ها</h5>
+                <ul style="{% if "personnel" in request.path %}display: none;{% endif %}max-height: 120px;max-width: 400px;padding: 16px;background: #111623;border:1px solid var(--muted);border-radius: 10px;overflow-y: auto; list-style: none; margin: 0;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;color:#a6adbb">
+                        <a href="{% url 'show_log' %}" style="color: var(--accent); text-decoration: none;">نمایش همه</a>
+                        <span>مرتب‌سازی براساس تاریخ/زمان</span>
+                    </div>
+                    {% for x in log reversed %}
+                        <li style="padding: 4px 0; border-bottom: 1px dashed #222a36;"><strong>{{x.date}} {{x.time}}</strong> | Temp: {{x.temp}}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                {% if "personnel" in request.path %}
+                <div class="chart" style="margin-top: 10px;">
+                    {% include 'thermal/chart2.html' %}
+                </div>
+                {% endif %}
+            </div>
+            {% if not "personnel" in request.path %}
+            <div class="panel hidden" id="image-panel">
+                <div class="image-wrap">
+                    <img src="{% static 'thermal_image.jpg' %}" id="Thermal_Img">
+                    <div id="highlight-box"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="panel" id="grid-panel" style="margin: 0 16px 16px 16px;{% if "personnel" in request.path %}display: none;{% endif %}">
+            <div id="temperature-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        // Get CSRF token for Django
+        const csrfToken = '{{ csrf_token }}';
+        
+        const gridData = [];
+        let highlightedCells = [];
+        let cellWidth, cellHeight, cols = 32, rows = 24;
+        let imgWidth, imgHeight;
+        let intervalId = null;
+        let isPaused = false;
+        let lastHovered = null;
+        let LastPointSelected = null;
+        const formula = document.getElementById("formula-input");
+        let probePoints = [];
+        let numProbes = 0;
+        let probes_input = document.getElementById("probes-input").value;
+        let alarmActive = false;
+        let alarmSound =new Audio('{% static 'alarm.wav' %}');
+        function isElementVisible(el) {
+            return !!(el && el.offsetParent !== null && getComputedStyle(el).display !== 'none');
+        }
+
+        function getBaseWidth() {
+            const imgEl = document.getElementById("Thermal_Img");
+            const imagePanelVisible = isElementVisible(document.getElementById("image-panel"));
+            if (imagePanelVisible && imgEl.clientWidth > 0) return imgEl.clientWidth;
+            const probesWrap = document.getElementById("probes-container");
+            const parent = probesWrap.parentElement;
+            return parent ? parent.clientWidth : window.innerWidth;
+        }
+        
+        function triggerAlarm() {
+            if (!alarmActive) {
+                alarmActive = true;
+                const humidityBox = document.getElementById("probes-container");
+                const alarmMessage = document.getElementById("alarm-message");
+                
+                // Make humidity indicator red and blinking
+                humidityBox.classList.add("alarm-mode");
+                
+                // Show alarm message
+                alarmMessage.style.display = "block";
+                
+                // Play alarm sound (placeholder - user will connect music)
+                // To add alarm sound, set alarmSound = new Audio('path/to/sound.mp3') in initialization
+                if (alarmSound) {
+                    //alarmSound.play().catch(e => console.log("Could not play alarm sound:", e));
+                }
+            }
+        }
+        
+        function clearAlarm() {
+            if (alarmActive) {
+                alarmActive = false;
+                const humidityBox = document.getElementById("humidity-box");
+                const alarmMessage = document.getElementById("alarm-message");
+                
+                // Remove alarm styling from humidity indicator
+                humidityBox.classList.remove("alarm-mode");
+                
+                // Hide alarm message
+                alarmMessage.style.display = "none";
+            }
+        }
+        
+        function startUpdating() {
+            if (intervalId !== null) clearInterval(intervalId);
+            intervalId = setInterval(() => {
+                const Thermal_Img = document.getElementById("Thermal_Img");
+                Thermal_Img.src = `/static/thermal_image.jpg?` + new Date().getTime();
+                const txtFileUrl = "/static/thermal_map.txt?" + new Date().getTime();
+                
+                // Wait for image to load before calculating dimensions
+                Thermal_Img.onload = () => {
+                    imgWidth = Thermal_Img.clientWidth || Thermal_Img.offsetWidth;
+                    imgHeight = Thermal_Img.clientHeight || Thermal_Img.offsetHeight;
+                    cellWidth = imgWidth / cols;
+                    cellHeight = imgHeight / rows;
+                    updateProbes(); // Update probe positions when dimensions change
+                };
+                
+                // Also update with current dimensions if image is already loaded
+                imgWidth = getBaseWidth();
+                imgHeight = Thermal_Img.clientHeight || Thermal_Img.offsetHeight;
+                cellWidth = imgWidth / cols;
+                cellHeight = imgHeight / rows;
+
+                fetch(txtFileUrl)
+                    .then(response => response.text())
+                    .then(text => {
+                        const container = document.getElementById("temperature-grid");
+                        const rowsData = text.trim().split("\n").filter(row => row.trim().length > 0);
+                        container.innerHTML = "";
+                        
+                        // Ensure we don't exceed the expected sensor dimensions
+                        const maxRows = Math.min(rowsData.length, rows);
+                        
+                        for(let rowIndex = 0; rowIndex < maxRows; rowIndex++) {
+                            const rowData = rowsData[rowIndex];
+                            const values = rowData.split(",");
+                            gridData[rowIndex] = [];
+
+                            // Ensure we don't exceed the expected column count
+                            const maxCols = Math.min(values.length, cols);
+                            
+                            for(let colIndex = 0; colIndex < maxCols; colIndex++) {
+                                const val = parseFloat(values[colIndex]);
+                                gridData[rowIndex][colIndex] = val;
+
+                                const div = document.createElement("div");
+                                div.className = "cell";
+                                div.textContent = val.toFixed(1);
+                                div.dataset.row = rowIndex;
+                                div.dataset.col = colIndex;
+
+                                div.addEventListener("mouseenter", () => {
+                                    highlightNeighbors(rowIndex, colIndex);
+                                    const avg = computeAverageAround(rowIndex, colIndex);
+                                    const humidity = HumidityCalculation(avg);
+                                    document.getElementById("humidity-box").textContent = `${humidity.toFixed(2)} %`;
+                                    document.getElementById("info-box").textContent = `${avg.toFixed(2)} °C`;
+                                    highlightOnImage(rowIndex, colIndex);
+                                });
+
+                                div.addEventListener("mouseleave", () => {
+                                    removeHighlights();
+                                    removeHighlightFromImage();
+                                });
+
+                                container.appendChild(div);
+                            }
+                        }
+
+                        if (lastHovered) {
+                            const { row, col } = lastHovered;
+                            const avg = computeAverageAround(row, col);
+                            const humidity = HumidityCalculation(avg);
+                            document.getElementById("humidity-box").textContent = `${humidity.toFixed(2)} %`;
+                            document.getElementById("info-box").textContent = `${avg.toFixed(2)} °C`;
+                            highlightNeighbors(row, col);
+                            highlightOnImage(row, col);
+                        }
+
+                        // Keep probes sized to image width and live-update their values
+                        const probesWrap = document.getElementById("probes-container");
+                        //probesWrap.style.width = (imgWidth && imgWidth > 0 ? imgWidth + "px" : "100%");
+                        updateProbes();
+                    });
+                    const unknown_devices_form = document.getElementById('unknown_devices_form');
+            }, 1000);
+        }
+
+        function computeAverageAround(row, col) {
+            let sum = 0, count = 0;
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    const r = row + dr;
+                    const c = col + dc;
+                    if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                        sum += gridData[r][c];
+                        count++;
+                    }
+                }
+            }
+            return count > 0 ? sum / count : 0;
+        }
+
+        function highlightOnImage(row, col) {
+            const box = document.getElementById("highlight-box");
+            box.style.left = `${col * cellWidth}px`;
+            box.style.top = `${row * cellHeight}px`;
+            box.style.width = `${cellWidth}px`;
+            box.style.height = `${cellHeight}px`;
+            box.style.display = "block";
+        }
+
+        function removeHighlightFromImage() {
+            document.getElementById("highlight-box").style.display = "none";
+        }
+
+        function highlightNeighbors(row, col) {
+            removeHighlights();
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    const r = row + dr;
+                    const c = col + dc;
+                    if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                        const cell = document.querySelector(`.cell[data-row='${r}'][data-col='${c}']`);
+                        if (cell) {
+                            cell.classList.add("highlight");
+                            highlightedCells.push(cell);
+                        }
+                    }
+                }
+            }
+        }
+
+        function removeHighlights() {
+            highlightedCells.forEach(cell => cell.classList.remove("highlight"));
+            highlightedCells = [];
+        }
+
+        document.getElementById("Thermal_Img").addEventListener("mousedown", function (e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const col = Math.floor(x / cellWidth);
+            const row = Math.floor(y / cellHeight);
+
+            if (row >= 0 && row < rows && col >= 0 && col < cols) {
+                lastHovered = { row, col };
+                LastPointSelected = lastHovered;
+                const avg = computeAverageAround(row, col);
+                const humidity = HumidityCalculation(avg);
+                document.getElementById("humidity-box").textContent = `${humidity.toFixed(2)} %`;
+                document.getElementById("info-box").textContent = `${avg.toFixed(2)} °C`;
+                highlightNeighbors(row, col);
+                highlightOnImage(row, col);
+            }
+        });
+
+        document.getElementById("Thermal_Img").addEventListener("mouseleave", () => {
+            removeHighlights();
+            removeHighlightFromImage();
+            document.getElementById("info-box").textContent = "0 °C";
+            lastHovered = null;
+        });
+
+        function togglePause() {
+            if (isPaused) {
+                startUpdating();
+                document.getElementById("pause-btn").textContent = "توقف";
+                isPaused = false;
+            } else {
+                clearInterval(intervalId);
+                document.getElementById("pause-btn").textContent = "ادامه";
+                isPaused = true;
+            }
+        }
+
+        function saveLog() {
+             if (!LastPointSelected) {
+                alert("No point selected.");
+                return;
+            }
+
+            const { row, col } = LastPointSelected;
+            const avgTemp = computeAverageAround(row, col);
+            fetch("/view/savelog/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    row: row,
+                    col: col,
+                    avg_temp: avgTemp
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert("Log saved successfully.");
+                } else {
+                    alert("Failed to save log.");
+                }
+            })
+            .catch(error => {
+                alert("Error occurred while saving log." + " " + error);
+            });
+        }
+
+        function getCookie(name) {
+            // For CSRF token, use the Django template variable first
+            if (name === 'csrftoken' && typeof csrfToken !== 'undefined' && csrfToken) {
+                return csrfToken;
+            }
+            
+            // Try to get from cookie
+            const cookie = document.cookie.split(';').find(c => c.trim().startsWith(name + '='));
+            if (cookie) {
+                return decodeURIComponent(cookie.split('=')[1]);
+            }
+            
+            // Fallback to meta tag for CSRF token
+            if (name === 'csrftoken') {
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                return metaTag ? metaTag.getAttribute('content') : null;
+            }
+            
+            return null;
+        }
+        
+        function refreshCSRFToken() {
+            // Make a simple GET request to refresh the CSRF token
+            fetch('/view/', {
+                method: 'GET',
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Update the csrfToken variable
+                    const newToken = getCookie('csrftoken');
+                    if (newToken) {
+                        window.csrfToken = newToken;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Failed to refresh CSRF token:', error);
+            });
+        }
+
+        function HumidityCalculation(temp) {
+            try {
+                const result = eval(formula.value.replace(/temp/g, `(${temp})`));
+                return result;
+            } catch (e) {
+                console.error("Invalid formula:", e);
+                return 0;
+            }
+        }
+
+
+
+        function updateProbeConfiguration() {
+            if (!probePoints.length) return;
+            
+            // Get checked probes
+            const checkedProbes = [];
+            for (let i = 0; i < probePoints.length; i++) {
+                if (probePoints[i].checkbox && probePoints[i].checkbox.checked) {
+                    checkedProbes.push(i + 1); // Probe IDs start from 1
+                }
+            }
+            
+            // Prepare probe configuration data
+            const probesData = {};
+            for (let i = 0; i < probePoints.length; i++) {
+                const p = probePoints[i];
+                probesData[`probe${i + 1}`] = {
+                    x: p.col,
+                    y: p.row
+                };
+            }
+            
+            // Prepare data to send
+            const configData = {
+                active_formula: formula.value,
+                probes_data: probesData,
+                checked_probes: checkedProbes
+            };
+            
+            // Get CSRF token
+            let csrfToken = getCookie('csrftoken');
+            if (!csrfToken) {
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                if (metaTag) {
+                    csrfToken = metaTag.getAttribute('content');
+                }
+            }
+            
+            if (!csrfToken) {
+                console.error('No CSRF token available');
+                return;
+            }
+            
+            // Send configuration update to backend
+            fetch('/view/update-probe-config/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify(configData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update average display with server-calculated data
+                    if (data.average_data) {
+                        const avgDisplayInput = document.getElementById("average-display-input");
+                        {% if "personnel" in request.path %}
+                        avgDisplayInput.value = `${data.average_data.humidity} %`;
+                        {% else %}
+                        avgDisplayInput.value = `${data.average_data.temperature} °C -- ${data.average_data.humidity} %`;
+                        {% endif %}
+                    }
+                    // Auto-save probe data after configuration update
+                    setTimeout(autoSaveProbeData, 1000);
+                } else {
+                    console.error('Error updating probe configuration:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Network error updating probe configuration:', error);
+            });
+        }
+
+        // Create N probe elements, evenly spaced across image width, centered vertically
+        function createProbes(count) {
+            let all_probs_hilight = document.querySelectorAll('.prob-hilight');
+            for (const x of all_probs_hilight) {
+                x.remove();
+            }
+            const wrap = document.getElementById("probes-container");
+            wrap.innerHTML = "";
+            probePoints = [];
+            numProbes = Math.max(0, parseInt(count || 0));
+            if (!numProbes) return;
+
+            const targetRow = Math.floor((rows - 1) / 2); // Row 11 for 24 rows (0-23) - true center
+            for (let i = 0; i < numProbes; i++) {
+                const targetCol = Math.floor(((i + 0.5) * cols) / numProbes); // Distribute across 32 columns (0-31)
+
+                const card = document.createElement("div");
+                card.className = "probe-card";
+
+                // Add checkbox for each probe
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.className = "probe-checkbox";
+                checkbox.checked = true; // Default to checked
+                checkbox.dataset.probeIndex = i;
+                checkbox.addEventListener("change", () => {
+                    updateAverageDisplay();
+                    updateProbeConfiguration(); // Update server when checkboxes change
+                });
+
+                let prob_hilight = document.createElement("div");
+                prob_hilight.className = "prob-hilight";
+                imagePanel.children[0].appendChild(prob_hilight)
+                prob_hilight.style.top = `${targetRow * cellHeight}px`;
+                const title = document.createElement("div");
+                title.className = "probe-title";
+                title.textContent = `Point ${i + 1}`;
+                const hum = document.createElement("div");
+                hum.className = "probe-humidity";
+                hum.textContent = "0 %";
+                const tmp = document.createElement("div");
+                tmp.className = "probe-temp";
+                tmp.textContent = "0 °C";
+
+                card.appendChild(checkbox);
+                card.appendChild(title);
+                card.appendChild(hum);
+                card.appendChild(tmp);
+                wrap.appendChild(card);
+
+                // Ensure probe coordinates are within sensor bounds
+                const clampedRow = Math.max(0, Math.min(rows - 1, targetRow));
+                const clampedCol = Math.max(0, Math.min(cols - 1, targetCol));
+                
+                probePoints.push({ 
+                    row: clampedRow, 
+                    col: clampedCol, 
+                    cardEl: card, 
+                    humEl: hum, 
+                    tempEl: tmp,
+                    checkbox: checkbox,
+                    index: i
+                });
+            }
+
+            // Size each card to evenly divide the image width
+            //sizeProbeCards();
+            updateProbes();
+            
+            // Update probe configuration in database
+            updateProbeConfiguration();
+            
+            // Update average display after creating probes
+            updateAverageDisplay();
+        }
+
+        function sizeProbeCards() {
+            const wrap = document.getElementById("probes-container");
+            if (!numProbes) return;
+            const available = imgWidth || wrap.clientWidth || 0;
+            const gap = 8; // must match CSS gap
+            const cardWidth = Math.max(80, Math.floor((available - gap * (numProbes - 1)) / numProbes));
+            for (const p of probePoints) {
+                p.cardEl.style.width = cardWidth + "px";
+            }
+        }
+
+        function updateAverageDisplay() {
+            if (!probePoints.length) {
+                document.getElementById("average-display-input").value = "هیچ المانی موجود نیست";
+                return;
+            }
+            
+            let totalTemp = 0;
+            let totalHumidity = 0;
+            let checkedCount = 0;
+            
+            for (const p of probePoints) {
+                if (p.checkbox && p.checkbox.checked) {
+                    // Get current temperature and humidity values from the probe elements
+                    const tempText = p.tempEl.textContent;
+                    const humText = p.humEl.textContent;
+
+                    // Extract numeric values
+                    const tempMatch = tempText.match(/(\d+\.?\d*)/);
+                    const humMatch = humText.match(/(\d+\.?\d*)/);
+                    
+                    if (tempMatch && humMatch) {
+                        const temp = parseFloat(tempMatch[1]);
+                        const hum = parseFloat(humMatch[1]);
+                        
+                        if (!isNaN(temp) && !isNaN(hum)) {
+                            totalTemp += temp;
+                            totalHumidity += hum;
+                            checkedCount++;
+                        }
+                    }
+                }
+            }
+            
+            if (checkedCount === 0) {
+                document.getElementById("average-display-input").value = "هیچ المانی انتخاب نشده";
+            } else {
+                const avgTemp = totalTemp / checkedCount;
+                const avgHumidity = totalHumidity / checkedCount;
+                
+                // Check if average temperature is out of range
+                if (avgTemp < 35 || avgTemp > 70) {
+                    triggerAlarm();
+                } else {
+                    clearAlarm();
+                }
+                
+                {% if "personnel" in request.path %}
+                document.getElementById("average-display-input").value = `${avgHumidity.toFixed(2)} %`;
+                {% else %}
+                document.getElementById("average-display-input").value = 
+                    `${avgTemp.toFixed(2)}°C -- ${avgHumidity.toFixed(2)}%`;
+                {% endif %}
+            }
+        }
+
+        function updateProbes() {
+            if (!probePoints.length) return;
+            //sizeProbeCards();
+            let probs_index = 0;
+            for (const p of probePoints) {
+                let probs_hilight_target = document.querySelectorAll('.prob-hilight');
+                const rowOk = Array.isArray(gridData[p.row]);
+                const valOk = rowOk && typeof gridData[p.row][p.col] === "number";
+                if (!valOk) {
+                    p.tempEl.textContent = `... °C`;
+                    p.humEl.textContent = `... %`;
+                    p.humEl.style.color = `#00d2ee`;
+                    continue;
+                }
+                // Center the probe highlight on the cell
+                probs_hilight_target[probs_index].style.left = `${p.col * cellWidth}px`;
+                probs_hilight_target[probs_index].style.top = `${p.row * cellHeight}px`;
+                probs_hilight_target[probs_index].style.width = `${cellWidth}px`;
+                probs_hilight_target[probs_index].style.height = `${cellHeight}px`;
+                probs_hilight_target[probs_index].style.display = "block";
+                const avg = computeAverageAround(p.row, p.col);
+                const humVal = HumidityCalculation(avg);
+                p.tempEl.textContent = `${avg.toFixed(2)} °C`;
+                p.humEl.textContent = `${humVal.toFixed(2)} %`;
+                
+                // Check temperature range and trigger alarm if needed
+                if (avg < 35 || avg > 70) {
+                    // Temperature out of range - trigger alarm
+                    triggerAlarm();
+                    // Visual cue by humidity level (red for alarm)
+                    p.humEl.style.color = `#ff4444`;
+                } else {
+                    // Temperature in normal range - clear alarm
+                    clearAlarm();
+                    // Visual cue by humidity level
+                    const hue = Math.max(0, Math.min(120, 120 - humVal)); // 120(green) -> 0(red)
+                    p.humEl.style.color = `hsl(${hue}, 60%, 35%)`;
+                }
+                probs_index++;
+            }
+            
+            // Update average display after updating probe values
+            updateAverageDisplay();
+        }
+
+        // Controls wiring
+        document.getElementById("probes-apply-btn").addEventListener("click", () => {
+            const n = parseInt(document.getElementById("probes-input").value);
+            createProbes(n);
+        });
+        document.getElementById("probes-input").addEventListener("keyup", (e) => {
+            if (e.key === "Enter") {
+                const n = parseInt(e.target.value);
+                createProbes(n);
+            }
+        });
+
+        // Show/Hide controls
+        const toggleImage = document.getElementById("toggle-image");
+        const toggleGrid = document.getElementById("toggle-grid");
+        const imagePanel = document.getElementById("image-panel");
+        const gridPanel = document.getElementById("grid-panel");
+        const gridEl = document.getElementById("temperature-grid");
+
+        function setImageVisible(v) {
+            imagePanel.classList.toggle('hidden', !v);
+            // Recalc sizes after layout change
+            setTimeout(() => {
+                imgWidth = getBaseWidth();
+                updateProbes();
+            }, 0);
+        }
+        function setGridVisible(v) {
+            gridPanel.classList.toggle('hidden', !v);
+            gridEl.style.display = v ? 'grid' : 'none';
+        }
+        toggleImage.addEventListener('change', (e) => setImageVisible(e.target.checked));
+        toggleGrid.addEventListener('change', (e) => setGridVisible(e.target.checked));
+
+        // Default state: image hidden, grid hidden
+        setImageVisible(false);
+        setGridVisible(false);
+
+
+
+        startUpdating();
+        
+        // Load initial probe configuration from database
+        function loadProbeConfiguration() {
+            fetch('/view/get-probe-config/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' && data.probe_count > 0) {
+                        // Set the formula
+                        formula.value = data.active_formula;
+                        
+                        // Set the probe count input
+                        document.getElementById("probes-input").value = data.probe_count;
+                        
+                        // Create probes with loaded configuration
+                        createProbesFromConfig(data.probes_data, data.checked_probes);
+                    } else {
+                        // Initialize default probes after first layout
+                        createProbes(parseInt(document.getElementById("probes-input").value));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading probe configuration:', error);
+                    // Fallback to default probes
+                    createProbes(parseInt(document.getElementById("probes-input").value));
+                });
+        }
+        
+        function createProbesFromConfig(probesData, checkedProbes = []) {
+            const probeCount = Object.keys(probesData).filter(k => !k.startsWith('avg')).length;
+            if (probeCount === 0) return;
+            
+            // Clear existing probes
+            let all_probs_hilight = document.querySelectorAll('.prob-hilight');
+            for (const x of all_probs_hilight) {
+                x.remove();
+            }
+            const wrap = document.getElementById("probes-container");
+            wrap.innerHTML = "";
+            probePoints = [];
+            numProbes = probeCount;
+            
+            // Create probe elements for each configured probe
+            Object.entries(probesData).forEach(([probeId, probeInfo], index) => {
+                // Skip average data entries
+                if (probeId.startsWith('avg')) return;
+                
+                const card = document.createElement("div");
+                card.className = "probe-card";
+
+                // Add checkbox for each probe
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.className = "probe-checkbox";
+                // Set checkbox state based on loaded configuration
+                checkbox.checked = checkedProbes.includes(index + 1);
+                checkbox.dataset.probeIndex = index;
+                checkbox.addEventListener("change", () => {
+                    updateAverageDisplay();
+                    updateProbeConfiguration(); // Update server when checkboxes change
+                });
+
+                let prob_hilight = document.createElement("div");
+                prob_hilight.className = "prob-hilight";
+                imagePanel.children[0].appendChild(prob_hilight)
+                //prob_hilight.style.top = `${targetRow * cellHeight}px`;
+                const title = document.createElement("div");
+                title.className = "probe-title";
+                title.textContent = `Point ${index + 1}`;
+                const hum = document.createElement("div");
+                hum.className = "probe-humidity";
+                hum.textContent = "0 %";
+                const tmp = document.createElement("div");
+                tmp.className = "probe-temp";
+                tmp.textContent = "0 °C";
+
+                card.appendChild(checkbox);
+                card.appendChild(title);
+                card.appendChild(hum);
+                card.appendChild(tmp);
+                wrap.appendChild(card);
+
+                // Ensure loaded probe coordinates are within sensor bounds
+                const clampedRow = Math.max(0, Math.min(rows - 1, probeInfo.y));
+                const clampedCol = Math.max(0, Math.min(cols - 1, probeInfo.x));
+                
+                probePoints.push({ 
+                    row: clampedRow, 
+                    col: clampedCol, 
+                    cardEl: card, 
+                    humEl: hum, 
+                    tempEl: tmp,
+                    checkbox: checkbox,
+                    index: index
+                });
+            });
+            
+            updateProbes();
+            
+            // Update average display after loading probes from config
+            updateAverageDisplay();
+        }
+        
+        // Load configuration after image loads
+        document.getElementById("Thermal_Img").addEventListener('load', () => {
+            imgWidth = getBaseWidth();
+            loadProbeConfiguration();
+        });
+        
+        // Initialize average display when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAverageDisplay();
+        });
+        formula.addEventListener("input", () => {
+            updateProbes();
+            updateProbeConfiguration();
+        });
+        
+        // Refresh CSRF token every 5 minutes to prevent expiration
+        setInterval(refreshCSRFToken, 5 * 60 * 1000);
+        
+        // Auto-save probe data every 10 seconds
+        function autoSaveProbeData() {
+            if (!probePoints.length) return;
+            
+            // Get checked probes
+            const checkedProbes = [];
+            for (let i = 0; i < probePoints.length; i++) {
+                if (probePoints[i].checkbox && probePoints[i].checkbox.checked) {
+                    checkedProbes.push(i + 1); // Probe IDs start from 1
+                }
+            }
+            
+            // Prepare probe data
+            const probesData = {};
+            let totalTemp = 0;
+            let totalHumidity = 0;
+            let validProbes = 0;
+            
+            for (const p of probePoints) {
+                if (p.checkbox && p.checkbox.checked) {
+                    const tempText = p.tempEl.textContent;
+                    const humText = p.humEl.textContent;
+                    
+                    const tempMatch = tempText.match(/(\d+\.?\d*)/);
+                    const humMatch = humText.match(/(\d+\.?\d*)/);
+                    
+                    if (tempMatch && humMatch) {
+                        const temp = parseFloat(tempMatch[1]);
+                        const hum = parseFloat(humMatch[1]);
+                        
+                        if (!isNaN(temp) && !isNaN(hum)) {
+                            probesData[`probe${p.index + 1}`] = {
+                                x: p.col,
+                                y: p.row,
+                                temperature: temp,
+                                humidity: hum
+                            };
+                            totalTemp += temp;
+                            totalHumidity += hum;
+                            validProbes++;
+                        }
+                    }
+                }
+            }
+            
+            if (validProbes > 0) {
+                // Calculate overall averages
+                const avgTemp = totalTemp / validProbes;
+                const avgHumidity = totalHumidity / validProbes;
+                
+                // Send to backend
+                const csrfToken = getCookie('csrftoken');
+                if (csrfToken) {
+                    fetch('/view/save-probe-data/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
+                        },
+                        body: JSON.stringify({
+                            humidity: avgHumidity,
+                            temperature: avgTemp,
+                            active_formula: formula.value,
+                            probes_data: probesData
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            clearAlarm(); // Clear alarm if data was saved successfully
+                        } else if (data.status === 'alarm') {
+                            triggerAlarm(); // Trigger alarm if temperature is out of range
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error auto-saving probe data:', error);
+                    });
+                }
+            }
+        }
+        
+        // Start auto-saving every 10 seconds
+        setInterval(autoSaveProbeData, 10000);
+    </script>
+</body>
+</html>

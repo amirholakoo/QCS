@@ -1,0 +1,14 @@
+[Unit]
+Description=Thermal Worker Background Script
+After=network.target
+
+[Service]
+User=admin
+WorkingDirectory=/home/admin/mlx90640_v1/thermal
+Environment="PATH=/home/admin/mlx90640_v1/env/bin"
+ExecStart=/home/admin/mlx90640_v1/env/bin/python3 /home/admin/mlx90640_v1/thermal/thermal_worker.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,189 @@
+{% load static %}
+<script src="{% static 'base/js/apexcharts.js' %}"></script>
+<style>
+    @font-face {
+            font-family: "Yekan";
+            src: url("{% static 'base/fonts/1cdce741b89d94b75c1b52dfbfc7bc3b1eb1a8d2ecb9da71753e17219a1b8057.woff2' %}") format("woff2");
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: "Yekan";
+            src: url("{% static 'base/fonts/8b3d4ccc94807967874f481b0ea82d0f26cda739c2fad3b923f28d8915af064f.woff2' %}") format("woff2");
+            font-weight: 700;
+            font-style: normal;
+        }
+    a {
+        font-family: Yekan;
+        display: inline-block;
+        background: #6568ff; color: #fff; border: 0; border-radius: 8px; padding: 8px 12px; cursor: pointer;
+        text-decoration: none;
+        margin: 10px;
+        font-size: 16px;
+    }
+    a.active {
+        background: #65ffa0;
+        color: #000;
+    }
+</style>
+<div class="Loupe_card mt-3">
+    <div style="width: 100%;text-align: center;">
+        <a  class="{% if not 'week' in request.GET and not 'month' in request.GET %}active{% endif %}" href="?">ساعتی</a>
+        <a  class="{% if 'week' in request.GET %}active{% endif %}" href="?week">هفتگی</a>
+        <a  class="{% if 'month' in request.GET %}active{% endif %}" href="?month">ماهانه</a>
+    </div>
+    <div id="Loupe_chart_1"></div>
+</div>
+
+
+<script>
+    let data_1 = [{
+            name: "تولید ماه جاری",
+            data: {{chart_data|safe}},
+        }]
+    var options = {
+        series: data_1,
+        chart: {
+            height: 400,
+            type: 'line',
+            zoom: {
+                enabled: false
+            },
+            toolbar: {
+                show: false,
+                // tools: {
+                //     download: false
+                // }
+            },
+        },
+        dataLabels: {
+            enabled: false,
+            // style: {
+            //     fontSize: '8px',
+            //     fontWeight: 'bold',
+            //     colors: ['var(--main)'],
+
+            // },
+            // background: {
+            //     borderRadius: 8,
+            //     foreColor: 'var(--main)',
+            // }
+        },
+        markers: {
+            size: [3, 0],
+            
+        },
+        stroke: {
+            curve: 'smooth',
+            width: 1,
+        },
+        colors: ['#4f8cff', '#000'],
+        // colors: [function ({ value, seriesIndex, w }) {
+        //     return 'var(--main)'
+        // }],
+
+        //   title: {
+        //     text: 'Product Trends by Month',
+        //     align: 'left'
+        //   },
+        grid: {
+            xaxis: {
+                lines: {
+                    show: true
+                }
+            },
+            yaxis: {
+                lines: {
+                    show: true
+                }
+            },
+            row: {
+                colors: undefined,
+                opacity: 0.5
+            },
+            column: {
+                colors: undefined,
+                opacity: 0.5
+            },
+        },
+        xaxis: {
+
+            categories: {{label_data|safe}},
+            min:1,
+            max:{{max}},
+        },
+        yaxis: {
+            crosshairs: [5,6,7]
+            //labels: {
+            //    show: true,
+            //    align: 'right',
+            //    minWidth: 0,
+            //    maxWidth: 160,
+            //    style: {
+            //        colors: ['#000'],
+            //        fontSize: '12px',
+            //        fontWeight: 400,
+            //        cssClass: 'apexcharts-yaxis-label',
+            //    },
+            //    offsetX: -45,
+            //    offsetY: 0,
+            //},
+        },
+        tooltip: {
+            custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+                return '<div class="bg-white rounded shadow-sm p-3">' +
+                    '<span>' + series[seriesIndex][dataPointIndex] + '</span>' +
+                    '</div>'
+            }
+        },
+        legend: {
+            fontFamily: 'Peyda',
+            fontSize: '15px',
+            horizontalAlign: 'center',
+            markers: {
+                width: 19,
+                height: 19,
+                offsetX: 6,
+                offsetY: 0
+            },
+            itemMargin: {
+                horizontal: 20,
+                vertical: 0,
+            },
+        }
+        // title: {
+        //     text: 'تولید ماه جاری',
+        //     align: 'center',
+        //     margin: 30,
+        //     offsetX: 0,
+        //     offsetY: 0,
+        //     floating: false,
+        //     style: {
+        //         fontSize: '15px',
+        //         fontWeight: 'bold',
+        //         fontFamily: 'Peyda',
+        //         color: 'var(--main)'
+        //     },
+        // },
+    };
+
+    var chart1 = new ApexCharts(document.querySelector("#Loupe_chart_1"), options);
+    chart1.render();
+      
+    //window.setInterval(function () {
+    //    $.ajax({
+    //        type: "post",
+    //        url: "/widgets/data/",
+    //        success: function(response) {
+    //            console.log(response);
+    //            data_1[0]['data'] = response.chart1[0].data;
+    //            data_1[1]['data'] = response.chart1[1].data;
+    //            chart1.updateSeries(data_1,)
+    //        },
+    //        error: function(request, error) {
+    //            console.log(error,request);
+    //            //alert(" Can't do because: " + error);
+    //        },
+    //    });
+    //}, 10000)
+</script>

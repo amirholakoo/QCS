@@ -1,0 +1,147 @@
+{% load static %}
+<style>
+    #charts_container >div {
+    display: none;
+    padding: 20px 0;
+}
+#charts_container >div.active {
+    display: block;
+}
+    a {
+        font-family: Yekan;
+        display: inline-block;
+        background: var(--muted);
+        color: #fff;
+        border: 0;
+        border-radius: 8px;
+        padding: 8px 10px;
+        cursor: pointer;
+        text-decoration: none;
+        margin: 4px;
+        font-size: 15px;
+    }
+    a.active {
+        background: var(--text);
+        color: #000;
+    }
+    text {
+        fill: #fff;
+    }
+    .on_loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.7;
+    }
+
+    .on_loading::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid var(--accent);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        z-index: 1000;
+    }
+
+    .on_loading::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 999;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+<div class="Loupe_card mt-3" style="background-color: var(--bg);margin: 12px;border-radius: 12px; padding: 24px;">
+    <div style="display: flex;justify-content: space-between;">
+        <!-- Countdown Timer -->
+        <div class="countdown-container" style="display: flex; justify-content: center; align-items: center; margin-bottom: 15px; padding: 8px 16px; background: var(--card); border: 1px solid var(--muted); border-radius: 8px;">
+            <div class="countdown-text" style="color: var(--text); font-size: 14px; margin-left: 8px;">به‌روزرسانی خودکار در:</div>
+            <div class="countdown-timer" id="countdown-timer" style="color: var(--accent); font-weight: 600; font-size: 18px; min-width: 60px; text-align: center;">5:00</div>
+        </div>
+        <div class="chart-filter" style="/* width: 100%; */text-align: center;background: var(--muted);border-radius: 12px;display: flex;padding: 8px;margin-bottom: 22px;margin-left: 10px;">
+            <a style="direction: ltr;"  class="hourly {% if not 'hourly' in request.GET and not 'daily_8' in request.GET and not 'daily_24' in request.GET and not 'week' in request.GET and not 'month' in request.GET and not 'year' in request.GET %}active{% endif %}">1 h</a>
+            <a style="direction: ltr;"  class="daily_8 {% if 'daily_8' in request.GET %}active{% endif %}">8 h</a>
+            <a style="direction: ltr;"  class="daily_24 {% if 'daily_24' in request.GET %}active{% endif %}">24 h</a>
+            <a style="direction: ltr;"  class="week {% if 'week' in request.GET %}active{% endif %}">هفتگی</a>
+            <a style="direction: ltr;"  class="month {% if 'month' in request.GET %}active{% endif %}">ماهانه</a>
+            <a style="direction: ltr;"  class="year {% if 'year' in request.GET %}active{% endif %}">سالانه</a>
+        </div>
+    </div>
+    <div class="chart-container" id="charts_container"></div>
+    <div  id="Loupe_chart_1"></div>
+</div>
+
+
+<script>
+    //window.setInterval(function () {
+    //    $.ajax({
+    //        type: "post",
+    //        url: "/widgets/data/",
+    //        success: function(response) {
+    //            console.log(response);
+    //            data_1[0]['data'] = response.chart1[0].data;
+    //            data_1[1]['data'] = response.chart1[1].data;
+    //            chart1.updateSeries(data_1,)
+    //        },
+    //        error: function(request, error) {
+    //            console.log(error,request);
+    //            //alert(" Can't do because: " + error);
+    //        },
+    //    });
+    //}, 10000)
+    // Countdown Timer for Auto Reload (5 minutes)
+    let countdownSeconds = 5 * 60; // 5 minutes in seconds
+        let countdownInterval = null;
+        
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function updateCountdownDisplay() {
+            const timerElement = document.getElementById('countdown-timer');
+            if (timerElement) {
+                timerElement.textContent = formatTime(countdownSeconds);
+                
+                // Change color based on time remaining
+                if (countdownSeconds <= 30) {
+                    timerElement.style.color = '#ef4444'; // Red when less than 30 seconds
+                } else if (countdownSeconds <= 60) {
+                    timerElement.style.color = '#fbbf24'; // Yellow when less than 1 minute
+                } else {
+                    timerElement.style.color = 'var(--accent)'; // Default blue
+                }
+            }
+        }
+        
+        function startCountdown() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            countdownInterval = setInterval(() => {
+                countdownSeconds--;
+                updateCountdownDisplay();
+                
+                if (countdownSeconds <= 0) {
+                    // Reload the page
+                    location.reload();
+                }
+            }, 1000);
+        }
+        
+        // Initialize countdown
+        updateCountdownDisplay();
+        startCountdown();
+</script>
