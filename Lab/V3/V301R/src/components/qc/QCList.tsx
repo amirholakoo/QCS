@@ -1,0 +1,403 @@
+import React, { useState, useEffect } from 'react';
+import { Plus, Eye, Edit, Trash2, Printer, QrCode, Search, Filter, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import type { QCRecord } from '../../types';
+import { qcAPI } from '../../utils/api';
+import { useToast } from '../common/Toast';
+import { usePermissions } from '../../hooks/useAPI';
+import { QCPrintPage } from './QCPrintPage';
+
+interface QCListProps {
+  onEdit?: (record: QCRecord) => void;
+  onView?: (record: QCRecord) => void;
+  onCreate?: () => void;
+}
+
+export const QCList: React.FC<QCListProps> = ({ onEdit, onView, onCreate }) => {
+  const { t } = useTranslation();
+  const [records, setRecords] = useState<QCRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [printRecordId, setPrintRecordId] = useState<string | null>(null);
+  const [justDeleted, setJustDeleted] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const { showToast } = useToast();
+  const { data: permissionsData } = usePermissions();
+  const qcPerms = permissionsData?.permissions?.qc || { view: false, add: false, change: false, delete: false };
+
+  useEffect(() => {
+    loadRecords();
+  }, [currentPage, statusFilter]);
+
+  useEffect(() => {
+    if (!justDeleted) return;
+    const timer = setTimeout(() => setJustDeleted(null), 5000);
+    return () => clearTimeout(timer);
+  }, [justDeleted]);
+
+  const loadRecords = async () => {
+    try {
+      setIsLoading(true);
+      const params: Record<string, string> = {
+        page: currentPage.toString(),
+      };
+      
+      if (statusFilter) {
+        params.status = statusFilter;
+      }
+      
+      const response = await qcAPI.listRecords(params);
+      setRecords(response.results || []);
+      setTotalPages(Math.ceil((response.count || 0) / 20));
+    } catch (error) {
+      console.error('Failed to load QC records:', error);
+      showToast('error', t('qc.errorLoading'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm(t('qc.deleteConfirm'))) {
+      return;
+    }
+    try {
+      await qcAPI.deleteRecord(id);
+      showToast('success', t('qc.deleteSuccess'));
+      setJustDeleted(id);
+      loadRecords();
+    } catch (error) {
+      console.error('Failed to delete QC record:', error);
+      showToast('error', t('qc.errorDeleting'));
+    }
+  };
+
+  const handleRestoreRecord = async () => {
+    if (!justDeleted) return;
+    setRestoring(true);
+    try {
+      await qcAPI.restoreRecord(justDeleted);
+      showToast('success', t('qc.restoreSuccess'));
+      setJustDeleted(null);
+      loadRecords();
+    } catch {
+      showToast('error', t('qc.restoreError'));
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handleOpenPrintPage = (record: QCRecord) => {
+    setPrintRecordId(record.id);
+  };
+
+  const handleClosePrintPage = () => {
+    setPrintRecordId(null);
+  };
+
+  const handleGenerateQR = async (record: QCRecord) => {
+    try {
+      const response = await qcAPI.generateQR(record.id);
+      if (response.success && response.qr_code) {
+        // Open QR code in new window or show in modal
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`
+            <html>
+              <head><title>QR Code - ${record.id}</title></head>
+              <body style="text-align: center; padding: 20px;">
+                <h2>QR Code for QC Record ${record.id}</h2>
+                <img src="${response.qr_code}" alt="QR Code" style="max-width: 300px;" />
+                <br><br>
+                <button onclick="window.print()">{t('qc.print')}</button>
+              </body>
+            </html>
+          `);
+        }
+      }
+      showToast('success', t('qc.qrCodeSuccess'));
+    } catch (error) {
+      console.error('Failed to generate QR code:', error);
+      showToast('error', t('qc.qrCodeError'));
+    }
+  };
+
+  const filteredRecords = records.filter(record =>
+    record.roll_numbers_display?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    record.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    record.user_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Show print page if a record is selected for printing
+  if (printRecordId) {
+    return (
+      <QCPrintPage 
+        qcRecordId={printRecordId} 
+        onClose={handleClosePrintPage}
+      />
+    );
+  }
+
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { className: string }> = {
+      draft: { className: 'bg-amber-100 text-amber-800 border border-amber-300' },
+      completed: { className: 'bg-blue-100 text-blue-800' },
+      printed: { className: 'bg-green-100 text-green-800' },
+    };
+    
+    const statusInfo = statusMap[status] || statusMap.draft;
+    const label = t(`qc.status.${status}`, { defaultValue: status });
+    
+    return (
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusInfo.className}`}>
+        {label}
+      </span>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+        <span className="mr-3 text-gray-600">{t('qc.loading')}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {justDeleted && (
+        <div className="fixed top-20 sm:top-24 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-[100] shadow-xl rounded-lg bg-white border-2 border-primary-200 overflow-hidden">
+          <div className="p-3 flex items-center gap-3">
+            <span className="flex-1 text-sm text-gray-800">{t('common.undoDeleteMessage')}</span>
+            <button type="button" onClick={handleRestoreRecord} disabled={restoring} className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium">
+              {restoring ? '...' : t('common.return')}
+            </button>
+            <button type="button" onClick={() => setJustDeleted(null)} className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="h-1 bg-primary-100 rounded-b-lg overflow-hidden">
+            <div className="return-alert-progress h-full bg-primary-500 rounded-b" />
+          </div>
+        </div>
+      )}
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{t('qc.title')}</h1>
+          <p className="text-gray-600 mt-1">{t('qc.subtitle')}</p>
+        </div>
+        
+        {qcPerms.add && (
+          <button
+            onClick={onCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            {t('qc.addNew')}
+          </button>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder={t('qc.searchPlaceholder')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-gray-400" />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="">{t('qc.allStatuses')}</option>
+            <option value="draft">{t('qc.status.draft')}</option>
+            <option value="completed">{t('qc.status.completed')}</option>
+            <option value="printed">{t('qc.status.printed')}</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Records Table */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('qc.table.id')}
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('qc.table.rollNumbers')}
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('qc.table.customer')}
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('qc.table.width')}
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('qc.table.user')}
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('qc.table.status')}
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('qc.table.printCount')}
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('qc.table.createdAt')}
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('qc.table.operations')}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredRecords.map((record) => (
+                <tr key={record.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    QC-{record.id}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <div className="flex items-center gap-2">
+                      <span>{record.roll_numbers_display}</span>
+                      {record.roll_numbers_count && record.roll_numbers_count > 1 && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                          {record.roll_numbers_count} {t('qc.rolls')}
+                        </span>
+                      )}
+                      {record.status === 'draft' && (
+                        <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full border border-amber-300">
+                          پیش‌نویس
+                        </span>
+                      )}
+                      {record.is_locked && (
+                        <span className="px-2 py-1 bg-rose-100 text-rose-700 text-xs rounded-full border border-rose-300">
+                          در حال ویرایش توسط {record.editing_by_name || 'کاربر دیگر'}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {record.customer_name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {record.loading_detail?.width || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {record.user_name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {getStatusBadge(record.status)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {record.print_count}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(record.create_time).toLocaleDateString('fa-IR')}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex items-center gap-2">
+                      {qcPerms.view && (
+                        <button
+                          onClick={() => onView?.(record)}
+                          className="text-blue-600 hover:text-blue-900 p-1 rounded"
+                          title={t('qc.viewAction')}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      )}
+                      {qcPerms.change && (
+                        <button
+                          onClick={() => onEdit?.(record)}
+                          className="text-yellow-600 hover:text-yellow-900 p-1 rounded"
+                          title={t('qc.editAction')}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      )}
+                      {qcPerms.view && (
+                        <>
+                          <button
+                            onClick={() => handleGenerateQR(record)}
+                            className="text-purple-600 hover:text-purple-900 p-1 rounded"
+                            title={t('qc.generateQR')}
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenPrintPage(record)}
+                            className="text-green-600 hover:text-green-900 p-1 rounded"
+                            title={t('qc.print')}
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                      {qcPerms.delete && (
+                        <button
+                          onClick={() => handleDelete(record.id)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded"
+                          title={t('qc.delete')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {filteredRecords.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">{t('qc.noRecords')}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {t('qc.workflow.previousButton')}
+          </button>
+          
+          <span className="px-4 py-2 text-sm text-gray-700">
+            {t('qc.page', { current: currentPage, total: totalPages })}
+          </span>
+          
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {t('qc.workflow.nextButton')}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};

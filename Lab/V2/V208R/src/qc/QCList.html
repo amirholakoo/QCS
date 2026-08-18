@@ -1,0 +1,205 @@
+{% load to_jalali %}
+
+<html lang="fa" dir="rtl" >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Seyed Amirmohammad Mousavi | 09109945728">
+    <title>گزارشات کنترل کیفی</title>
+    <style>
+        @font-face {
+            font-family: 'IranYekan';
+            src: url('../fonts/eot/iranyekanwebregular.eot'); /* IE9 Compat Modes */
+            src: url('../fonts/eot/iranyekanwebregular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+                url('../fonts/woff2/iranyekanwebregular.woff2') format('woff2'), /* Modern Browsers */
+                url('../fonts/woff/iranyekanwebregular.woff') format('woff'), /* Pretty Modern Browsers */
+                url('../fonts/ttf/iranyekanwebregular.ttf') format('truetype'); /* Safari, Android, iOS */
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+            }
+
+            @font-face {
+            font-family: 'IranYekan';
+            src: url('../fonts/eot/iranyekanweblight.eot');
+            src: url('../fonts/eot/iranyekanweblight.eot?#iefix') format('embedded-opentype'),
+                url('../fonts/woff2/iranyekanweblight.woff2') format('woff2'),
+                url('../fonts/woff/iranyekanweblight.woff') format('woff'),
+                url('../fonts/ttf/iranyekanweblight.ttf') format('truetype');
+            font-weight: 300;
+            font-style: normal;
+            font-display: swap;
+            }
+
+            @font-face {
+            font-family: 'IranYekan';
+            src: url('../fonts/eot/iranyekanwebbold.eot');
+            src: url('../fonts/eot/iranyekanwebbold.eot?#iefix') format('embedded-opentype'),
+                url('../fonts/woff2/iranyekanwebbold.woff2') format('woff2'),
+                url('../fonts/woff/iranyekanwebbold.woff') format('woff'),
+                url('../fonts/ttf/iranyekanwebbold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        html {
+            direction: rtl;
+            font-family: 'IranYekan', Tahoma, sans-serif;
+        }
+        
+        body {
+            font-family: 'IranYekan', Tahoma, sans-serif;
+            line-height: 1.6;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            /* overflow: hidden;
+            border-radius: 18px;
+            border: 1px solid #000; */
+        }
+        table th {
+            margin-bottom: 16px;
+            background-color: #4d4ea8 !important;
+            color: #fff;
+        }
+        table tr:first-child {
+            background-color: rgb(151, 151, 151);
+        }
+        table tr:nth-child(odd) td{
+            background-color: rgb(247 247 247) !important;
+        }
+        table tr {
+            margin-bottom: 4px;
+            cursor: pointer;
+        }
+        table td,table th {
+            border: 1px solid #ffffff;
+            padding: 10px;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 700;
+            background-color: #e6e6e6;
+            white-space: nowrap;
+        }
+        .container {
+            max-width: 1400px;
+            padding: 14px;
+            margin: auto auto;
+            overflow-y: auto;
+        }
+        /* Pagination */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.pagination-info {
+    font-size: 0.875rem;
+    color: var(--text-light);
+    padding: 8px 16px;
+    background: var(--light);
+    border-radius: var(--radius);
+}
+
+.pagination-pages {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pagination-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.pagination-link:hover {
+    background: var(--light);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.pagination-link.active {
+    background: var(--primary-gradient);
+    border-color: var(--primary);
+    color: var(--white);
+    box-shadow: var(--shadow-primary);
+}
+
+.pagination-link.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.pagination-link svg {
+    width: 26px;
+    height: 26px;
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <table>
+            <tr>
+                <th>#</th>
+                <th>شناسه</th>
+                <th>نام مشتری</th>
+                <th>عرض</th>
+                <th>تاریخ ایجاد</th>
+            </tr>
+            {% for x in qc %}
+            <tr onclick="window.location = `{% url 'qc_report_detail' x.id %}`">
+                <td>{{forloop.counter}}</td>
+                <td>QC-{{x.id}}</td>
+                <td style="text-align: right;font-size: 0.75rem;">{{x.customer_id.name_family|default:"-"}}</td>
+                <td>{{x.loading_id.width|floatformat:-1}}</td>
+                <td style="text-align: right;">{% to_jalali x.create_time %}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% if qc.paginator.num_pages > 1 %}
+        <div class="pagination">
+            <div class="pagination-pages">
+                {% if qc.has_previous %}
+                <a href="?page=1" class="pagination-link" title="اولین">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
+                </a>
+                <a href="?page={{ qc.previous_page_number }}" class="pagination-link" title="قبلی">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+                {% endif %}
+                
+                <span class="pagination-info">صفحه {{ qc.number }} از {{ qc.paginator.num_pages }}</span>
+                
+                {% if qc.has_next %}
+                <a href="?page={{ qc.next_page_number }}" class="pagination-link" title="بعدی">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </a>
+                <a href="?page={{ qc.paginator.num_pages }}" class="pagination-link" title="آخرین">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        <br><br>
+    </div>
+</body>
+</html>

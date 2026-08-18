@@ -1,0 +1,61 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% block Link %}
+<link rel="stylesheet" href="{% static 'accounts/css/login.css' %}">
+{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+
+
+<section class="login" id="login">
+    <div>
+        <div class="login_header">
+            <div class="icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-plus w-5 h-5 text-white"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" x2="19" y1="8" y2="14"></line><line x1="22" x2="16" y1="11" y2="11"></line></svg>
+            </div>
+            <h5>
+                سیستم مدیریت تولید کاغذ
+            </h5>
+        </div>
+        <div class="login_card">
+            <div class="login_card_header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user w-4 h-10 text-primary-600"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <p>کاربران موجود <b>(12)</b></p>
+            </div>
+            <div class="login_body">
+                {% for user in users %}
+                <a onclick="confirm_login(this)" class="user_card {% if user_that_already_exist and user.get_full_name == user_that_already_exist %}border-primary{% endif %}">
+                    <div class="username">
+                        <p>
+                            {% if user.username == 'admin' %}
+                            CONTROL
+                            {% else %}
+                            {{user.get_full_name}}
+                            {% endif %}
+                        </p>
+                        <span>{{user.username}}</span>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-in w-4 h-4 text-gray-400 group-hover:text-primary-600 mr-2 flex-shrink-0"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" x2="3" y1="12" y2="12"></line></svg>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        <a href="{% url 'register' %}">حساب کاربری ندارید؟ ثبت نام کنید</a>
+    </div>
+</section>
+
+<form action="" method="post" class="d-none">
+    {% csrf_token %}
+    <input type="text" name="user_name" id="form_username_value">
+</form>
+
+<script>
+    function confirm_login(obj) {
+        let login_form = document.forms[0];
+        let user_name = obj.querySelector("span").innerHTML;
+        document.getElementById("form_username_value").value = user_name;
+        login_form.submit();
+    }
+</script>
+{% block URL_HASH %}{% endblock %}
+{% endblock %}

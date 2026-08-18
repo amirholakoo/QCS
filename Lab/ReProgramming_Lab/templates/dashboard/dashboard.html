@@ -1,0 +1,18 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block Link %}
+<link rel="stylesheet" href="{% static 'paper/css/paper.css' %}">
+{% endblock %}
+{% block title %}داشبورد مدیریت تولید{% endblock %}
+
+{% block content %}
+<div class="page_content">
+    <section class="section_page" id="dashboard">
+        dashboard
+    </section>
+    {% include 'paper/paper.html' %}
+</div>
+{% endblock content %}
+
+
+

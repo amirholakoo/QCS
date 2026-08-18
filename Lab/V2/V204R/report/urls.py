@@ -1,0 +1,11 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('chart-data/', views.chart_data_api, name='chart_data_api'),
+    path('clear-chart-data/', views.clear_chart_data, name='clear_chart_data'),
+    path('debug-chart-data/', views.debug_chart_data, name='debug_chart_data'),
+    path('technical-report-data/', views.technical_report_data_api, name='technical_report_data_api'),
+    path('dashboard-stats/', views.dashboard_stats_api, name='dashboard_stats_api'),
+    path('complete-report-export-xlsx/', views.complete_report_export_xlsx, name='complete_report_export_xlsx'),
+]

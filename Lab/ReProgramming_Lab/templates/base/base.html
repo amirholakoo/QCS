@@ -1,0 +1,130 @@
+{% load static %}
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="minimal-ui, width=device-width, initial-scale=1.0, shrink-to-fit=no,user-scalable=0">
+    <meta name="author" content="Amirmohammad Mousavi | 09014131719">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="copyright" content="bamadoctor.com" />
+    <meta name="copyright" content="" />
+    <meta name="theme-color" content="#fff" >
+    <meta name="description" content="{% block description %}{% endblock %}">
+    <meta property="og:image" content="{% static 'base/image/logo.png' %}">
+    <meta name="og:title" property="og:title" content="{% block ogtitle %}{% endblock %}">
+    <meta property="og:description" content="{% block ogdescription %}{% endblock %}">
+    <meta name="keywords" content="{% block keywords %}{% endblock %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'base/img/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'base/img/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'base/img/favicon-16x16.png' %}">
+    <link rel="manifest" href="{% static 'base/img/site.webmanifest' %}">
+    <link rel="icon" href="{% static 'base/img/favicon-32x32.png' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'base/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'base/css/main.style.css' %}?version={{version}}" type="text/css">
+    <link rel="stylesheet" href="{% static 'base/css/balloon.css' %}" type="text/css">
+    <link rel="stylesheet" href="{% static 'base/css/responsive.css' %}?version={{version}}" type="text/css">
+    <link rel="stylesheet" href="{% static 'base/css/styles.css' %}?version={{version}}" type="text/css">
+    <script src="{% static 'base/js/load_before.js' %}"></script>
+    {% block Link %}{% endblock %}
+    <title>{% block title %}{% endblock %}</title>
+</head>
+<body class="max">
+<style>
+
+    :root {
+        --main-color: #2563eb;
+        --light-main-color: #eff4ff;
+        --light-color: #9e9e9e;
+        --font-sm: 14px;
+        --font-md: 16px;
+        --font-lg: 17px;
+        --font-xl: 18px;
+        --font-xs: 13px;
+        --border-color: #ededed;
+        --radius: 10px;
+    }
+
+    @font-face {
+        font-family: Peyda;
+        font-style: normal;
+        font-weight: 900;
+        src: url("{% static 'base/fonts/eot/PeydaWeb-Black.eot' %}");
+        src: url("{% static 'base/fonts/eot/PeydaWeb-Black.eot?#iefix' %}") format("embedded-opentype"),
+            url("{% static 'base/fonts/woff2/PeydaWeb-Black.woff2' %}") format("woff2"),
+            url("{% static 'base/fonts/woff/PeydaWeb-Black.woff' %}") format("woff"),
+            url("{% static 'base/fonts/ttf/Peyda.ttf' %}") format("truetype");
+    }
+
+    @font-face {
+        font-family: Peyda;
+        font-style: normal;
+        font-weight: 700;
+        src: url("{% static 'base/fonts/eot/PeydaWeb-Bold.eot' %}");
+        src: url("{% static 'base/fonts/eot/PeydaWeb-Bold.eot?#iefix' %}") format("embedded-opentype"),
+            url("{% static 'base/fonts/woff2/PeydaWeb-Bold.woff2' %}") format("woff2"),
+            url("{% static 'base/fonts/woff/PeydaWeb-Bold.woff' %}") format("woff"),
+            url("{% static 'base/fonts/ttf/Peyda.ttf' %}") format("truetype");
+    }
+
+    @font-face {
+        font-family: Peyda;
+        font-style: normal;
+        font-weight: 400;
+        src: url("{% static 'base/fonts/eot/PeydaWeb-Medium.eot' %}");
+        src: url("{% static 'base/fonts/eot/PeydaWeb-Medium.eot?#iefix' %}") format("embedded-opentype"),
+            url("{% static 'base/fonts/woff2/PeydaWeb-Medium.woff2' %}") format("woff2"),
+            url("{% static 'base/fonts/woff/PeydaWeb-Medium.woff' %}") format("woff"),
+            url("{% static 'base/fonts/ttf/Peyda.ttf' %}") format("truetype");
+    }
+
+    @font-face {
+        font-family: Peyda;
+        font-style: normal;
+        font-weight: 100;
+        src: url("{% static 'base/fonts/eot/PeydaWeb-Regular.eot' %}");
+        src: url("{% static 'base/fonts/eot/PeydaWeb-Regular.eot?#iefix' %}") format("embedded-opentype"),
+            url("{% static 'base/fonts/woff2/PeydaWeb-Regular.woff2' %}") format("woff2"),
+            url("{% static 'base/fonts/woff/PeydaWeb-Regular.woff' %}") format("woff"),
+            url("{% static 'base/fonts/ttf/Peyda.ttf' %}") format("truetype");
+    }
+</style>
+{% block header %}
+{% include "base/header.html" %}
+{% endblock %}
+<div class="progressbar" id="progressbar">
+    <div class="progress bg-white p-4 rounded shadow d-flex align-items-center">
+        <h6 class="m-3">لطفا صبر کنید</h6>
+        <div class="loader"></div>
+    </div>
+</div>
+{% block content %}{% endblock %}
+{% block footer %}{% endblock %}
+<div class="alert_parent" id="Alert"></div>
+<script src="{% static 'base/js/jquery-3.6.0.min.js' %}"></script>
+<script src="{% static 'base/js/bootstrap.min.js' %}"></script>
+<script src="{% static 'base/js/jquery.ajax.min.js' %}"></script>
+<script src="{% static 'base/js/main.js' %}?version={{version}}"></script>
+
+{% block URL_HASH %}
+<script src="{% static 'base/js/URL_HASH.js' %}?version={{version}}"></script>
+{% endblock %}
+
+<script src="{% static 'reservation/js/multi-select.js' %}?version={{version}}"></script>
+<!-- <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script> -->
+<script>
+    function getcorrectvalue(obj) {
+        obj.value = toEnDigit(obj.value);
+    }
+    // fa num to en
+    function toEnDigit(s) {
+        return s.replace(/[\u0660-\u0669\u06f0-\u06f9]/g,
+            function(a) { return a.charCodeAt(0) & 0xf }
+        )
+    }
+    {% if messages %}{% for message in messages %}
+    AM_alert({status : '{{message.tags}}', text:'{{ message }}',btns:false,obj:false});
+    {% endfor %}{% endif %}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

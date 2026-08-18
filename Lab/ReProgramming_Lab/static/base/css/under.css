@@ -1,0 +1,49 @@
+body {
+    background: #E4E4E4;
+}
+.under .login-btn {
+    top: 9.44%;
+    left: 5.3125%;
+}
+.under .content {
+    width: 335px;
+}
+.under .under_logo {
+    width: 100%;
+}
+.under .under_logo img {
+    width: 100%;
+}
+.under .under_contact {
+    margin-top: 52px;
+}
+.under .line {
+    width: 58.625%;
+    height: 1px;
+    background: #ABABAB;
+    margin-left: 6px;
+}
+
+.under .author-sign {
+    position: absolute;
+    left: calc(50% - 46.55px);
+    bottom: 20.14px;
+}
+
+.under .under_name {
+    margin-top: 28px;
+}
+
+@media (max-width: 768px) {
+    .under .author-sign {
+        position: absolute;
+        left: calc(50% - 15px);
+        bottom: 20.14px;
+    }
+    .under .content {
+        max-width: calc(100% / 5* 3);
+    }
+    .under .under_contact {
+        margin-top: 23px;
+    }
+}

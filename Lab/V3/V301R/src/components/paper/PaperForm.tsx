@@ -1,0 +1,2144 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Save, Trash2, ArrowLeft, Calendar, Factory, FileText, Settings, TestTube, Package, Gauge, Layers, MessageSquare, X } from 'lucide-react';
+import type { Paper, ProductionMachine, PM_Setting, PaperTypeItem } from '../../types';
+import { DatePicker } from '../common/DatePicker';
+import { TimePicker } from '../common/TimePicker';
+import { AutoComplete } from '../common/AutoComplete';
+import { ConfirmationDialog } from '../common/ConfirmationDialog';
+import { getCurrentShamsiDate, getCurrentTime } from '../../utils/persianUtils';
+import { useTranslation } from 'react-i18next';
+import { useMaterials, usePaperSuggestions, useDeletePaper, useProductionMachines, usePaperTypes, useGetTodayDate, usePermissions } from '../../hooks/useAPI';
+import { useToast } from '../common/Toast';
+import { paperAPI } from '../../utils/api';
+
+interface PaperFormProps {
+  paper?: Paper;
+  onSave: (paper: Omit<Paper, 'id' | 'created_at' | 'last_updated' | 'user'>) => void;
+  onCancel: () => void;
+  onDelete?: () => void;
+  readOnly?: boolean;
+}
+
+export const PaperForm: React.FC<PaperFormProps> = ({ paper, onSave, onCancel, onDelete, readOnly = false }) => {
+  const { t } = useTranslation();
+  const { showToast } = useToast();
+  const { deletePaper, loading: deleteLoading } = useDeletePaper();
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [justDeleted, setJustDeleted] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [rollNumberError, setRollNumberError] = useState<string>('');
+  const [rollNumberWarningDialog, setRollNumberWarningDialog] = useState<{
+    isOpen: boolean;
+    enteredValue: string;
+    suggestedValue: string;
+  }>({ isOpen: false, enteredValue: '', suggestedValue: '' });
+  const [lastRollNumber, setLastRollNumber] = useState<number | null>(null);
+  const [validatingRollNumber, setValidatingRollNumber] = useState(false);
+  
+  // API hooks
+  const { data: materialsData } = useMaterials();
+  const { data: suggestionsData } = usePaperSuggestions();
+  const { data: productionMachinesData } = useProductionMachines();
+  const { data: paperTypesData } = usePaperTypes();
+  const { data: currentdate} = useGetTodayDate();
+  const { data: permissionsData } = usePermissions();
+  const paperPerms = permissionsData?.permissions?.paper || { view: false, add: false, change: false, delete: false };
+
+  const materials = materialsData?.results || [];
+  const paperTypes: PaperTypeItem[] = paperTypesData?.results || [];
+  // Handle both array and paginated response - ensure it's always an array
+  const productionMachines: ProductionMachine[] = (() => {
+    if (!productionMachinesData) return [];
+    if (Array.isArray(productionMachinesData)) {
+      return productionMachinesData;
+    }
+    if (productionMachinesData && typeof productionMachinesData === 'object' && 'results' in productionMachinesData) {
+      return Array.isArray(productionMachinesData.results) ? productionMachinesData.results : [];
+    }
+    return [];
+  })();
+  const suggestions = {
+    responsiblePersonNames: suggestionsData?.responsible_person_names || [],
+    materialNames: [],
+    materialUsageAmounts: {} as Record<string, number[]>,
+    materialUsageSuggestions: suggestionsData?.material_usage_suggestions || {},
+    tempBeforePressSuggestions: suggestionsData?.temp_before_press_suggestions || [],
+    tempAfterPressSuggestions: suggestionsData?.temp_after_press_suggestions || [],
+    machineSpeedSuggestions: suggestionsData?.machine_speed_suggestions || [],
+    paperSizeSuggestions: suggestionsData?.paper_size_suggestions || [],
+  };
+  
+  // Form state
+  const [formData, setFormData] = useState<Partial<Paper>>({
+    user: '',
+    date: currentdate?.today,
+    sampling_start_time: getCurrentTime(),
+    sampling_end_time: getCurrentTime(),
+    ProductionLine: 2,
+    roll_number: '',
+    responsible_person_name: '',
+    shift: undefined,
+    PaperType: undefined,
+    paper_size: undefined,
+    NumberOfTears: undefined,
+    real_grammage: undefined,
+    humidity: undefined,
+    ash_percentage: undefined,
+    cub: undefined,
+    profile: undefined,
+    density_valve: undefined,
+    diluting_valve: undefined,
+    density_valve2: undefined,
+    diluting_valve2: undefined,
+    density_valve3: undefined,
+    diluting_valve3: undefined,
+    density_valve4: undefined,
+    diluting_valve4: undefined,
+    density_valve5: undefined,
+    diluting_valve5: undefined,
+    burst_test: '',
+    tensile_strength_md: undefined,
+    tensile_strength_cd: undefined,
+    cct1: undefined, cct2: undefined, cct3: undefined, cct4: undefined, cct5: undefined,
+    rct1: undefined, rct2: undefined, rct3: undefined, rct4: undefined, rct5: undefined,
+    tearing_time: '',
+    ProductionDowntime: '',
+    CauseOfTearing: '',
+    calender_applied: false,
+    machine_speed: undefined,
+    material_usage: '',
+  });
+
+  // Material selection state with brand and description
+  const [selectedMaterials, setSelectedMaterials] = useState<{
+    [id: string]: {
+      val: number | undefined;
+      brand: string;
+      text: string;
+      Soluble_in_water?: number;
+    }
+  }>({});
+
+  const [pmSettings, setPmSettings] = useState<{
+    [machineId: string]: {
+      bottom: string;
+      top: string;
+      fructose_temperature_before_press?: number;
+      paper_temperature_before_dryer3?: number;
+      dryer3_first_cylinder_temperature?: number;
+      cylinder_temperature_before_press?: number;
+      cylinder_temperature_after_press?: number;
+      paper_temperature_before_starch?: number;
+      paper_temperature_before_pop_reel?: number;
+      details?: Record<string, string>;
+    }
+  }>({});
+
+  const [pmNoteDefaults, setPmNoteDefaults] = useState<Record<string, Record<string, string>>>({});
+  const [openNote, setOpenNote] = useState<{ machineId: string; fieldKey: string } | null>(null);
+  // Profile details state (24 numeric inputs)
+  const [profileDetails, setProfileDetails] = useState<{
+    [key: string]: number | undefined;
+  }>({});
+
+  useEffect(() => {
+      if (currentdate?.today && !isEditing) {
+          setFormData(prev => ({
+              ...prev,
+              date: currentdate.today
+          }));
+      }
+  }, [currentdate]);
+
+
+
+  // Fetch last roll number on mount and when ProductionLine changes
+  useEffect(() => {
+    const fetchLastRollNumber = async (productionLine?: number) => {
+      try {
+        const params: Record<string, string> = {};
+        if (productionLine !== undefined && productionLine !== null) {
+          params.ProductionLine = String(productionLine);
+        }
+
+        const response = await paperAPI.lastRoll(params);
+        if (response && response.roll_number) {
+          const rollNum = parseInt(response.roll_number, 10);
+          if (!isNaN(rollNum)) {
+            const newSuggested = rollNum + 1;
+            const prevSuggested = previousSuggestedRef.current;
+            setLastRollNumber(rollNum);
+
+            if (!paper) {
+              setFormData(prev => {
+                const current = prev.roll_number;
+                const prevSuggestedStr = prevSuggested !== null ? String(prevSuggested + 1) : null;
+                if (!current || (typeof current === 'string' && current.trim() === '') || (prevSuggestedStr && current === prevSuggestedStr)) {
+                  return { ...prev, roll_number: String(newSuggested) };
+                }
+                return prev;
+              });
+            }
+
+            // update ref to current last roll
+            previousSuggestedRef.current = rollNum;
+          } else {
+            setLastRollNumber(null);
+            previousSuggestedRef.current = null;
+          }
+        } else {
+          setLastRollNumber(null);
+          previousSuggestedRef.current = null;
+        }
+      } catch (error) {
+        showToast('error', 'نا موفق در گرفتن آخرین شماره رول | پس از برسی اتصال اینترنت از این بخش خارج شوید و دوباره وارد شوید');
+        console.error('Failed to fetch last roll number:', error);
+      }
+    };
+
+    if (!paper) {
+      // Fetch suggestion for the current ProductionLine when creating a new record
+      fetchLastRollNumber(formData.ProductionLine);
+    }
+  }, [paper, formData.ProductionLine]);
+
+  // Track previous suggested roll for production line changes
+  const previousSuggestedRef = useRef<number | null>(null);
+
+  // Initialize form with existing paper data
+  useEffect(() => {
+    if (paper) {
+      setFormData(paper);
+      
+      // Parse material usage
+      if (paper.material_usage) {
+        try {
+          const materialUsageData = JSON.parse(paper.material_usage);
+          const materialUsageMap: {[id: string]: {val: number | undefined, brand: string, text: string, Soluble_in_water?: number}} = {};
+          Object.entries(materialUsageData).forEach(([materialId, data]: [string, any]) => {
+            if (data && typeof data === 'object') {
+              materialUsageMap[materialId] = {
+                val: data.val !== undefined && data.val !== null ? data.val : 1,
+                brand: data.brand || '',
+                text: data.text || '',
+                Soluble_in_water: data.Soluble_in_water !== undefined && data.Soluble_in_water !== null ? data.Soluble_in_water : undefined
+              };
+            }
+          });
+          setSelectedMaterials(materialUsageMap);
+        } catch (e) {
+          // Fallback to old format for backward compatibility
+          const materialUsageMap: {[id: string]: {val: number | undefined, brand: string, text: string, Soluble_in_water?: number}} = {};
+          const pairs = paper.material_usage?.split(',') || [];
+          pairs.forEach(pair => {
+            const [materialId, amount] = pair.split(':');
+            if (materialId && amount) {
+              materialUsageMap[materialId] = {
+                val: parseFloat(amount),
+                brand: '',
+                text: '',
+                Soluble_in_water: undefined
+              };
+            }
+          });
+          setSelectedMaterials(materialUsageMap);
+        }
+      }
+
+      type PmSettingRow = { bottom: string; top: string; fructose_temperature_before_press?: number; paper_temperature_before_dryer3?: number; dryer3_first_cylinder_temperature?: number; cylinder_temperature_before_press?: number; cylinder_temperature_after_press?: number; paper_temperature_before_starch?: number; paper_temperature_before_pop_reel?: number; details?: Record<string, string> };
+      const pmSettingsMap: { [machineId: string]: PmSettingRow } = {};
+      const mid = (x: string | number) => String(x);
+      if (Array.isArray(productionMachines)) {
+        productionMachines.forEach((machine: ProductionMachine) => {
+          pmSettingsMap[mid(machine.id)] = { bottom: '', top: '' };
+        });
+      }
+      if (paper.pm_settings && paper.pm_settings.length > 0) {
+        paper.pm_settings.forEach((setting: PM_Setting) => {
+          const key = mid(setting.production_machine);
+          if (pmSettingsMap[key]) {
+            const d = setting.details && typeof setting.details === 'object' ? { ...setting.details } : undefined;
+            pmSettingsMap[key] = {
+              bottom: setting.bottom || '',
+              top: setting.top || '',
+              fructose_temperature_before_press: setting.fructose_temperature_before_press,
+              paper_temperature_before_dryer3: setting.paper_temperature_before_dryer3,
+              dryer3_first_cylinder_temperature: setting.dryer3_first_cylinder_temperature,
+              cylinder_temperature_before_press: setting.cylinder_temperature_before_press,
+              cylinder_temperature_after_press: setting.cylinder_temperature_after_press,
+              paper_temperature_before_starch: setting.paper_temperature_before_starch,
+              paper_temperature_before_pop_reel: setting.paper_temperature_before_pop_reel,
+              details: d
+            };
+          }
+        });
+      }
+      setPmSettings(pmSettingsMap);
+
+      // Initialize profile_details
+      if (paper.profile_details) {
+        try {
+          const profileDetailsData = typeof paper.profile_details === 'string' 
+            ? JSON.parse(paper.profile_details) 
+            : paper.profile_details;
+          setProfileDetails(profileDetailsData || {});
+        } catch (e) {
+          setProfileDetails({});
+        }
+      } else {
+        setProfileDetails({});
+      }
+    } else {
+      const emptySettings: {[machineId: string]: {bottom: string, top: string, fructose_temperature_before_press?: number, paper_temperature_before_dryer3?: number, dryer3_first_cylinder_temperature?: number, cylinder_temperature_before_press?: number, cylinder_temperature_after_press?: number, paper_temperature_before_starch?: number, paper_temperature_before_pop_reel?: number, details?: Record<string, string>}} = {};
+      if (Array.isArray(productionMachines)) {
+        productionMachines.forEach((machine: ProductionMachine) => {
+          emptySettings[String(machine.id)] = { bottom: '', top: '' };
+        });
+      }
+      setPmSettings(emptySettings);
+      setProfileDetails({});
+    }
+  }, [paper, productionMachines]);
+
+  // useEffect(() => {
+  //   paperAPI.getPmNoteDefaults().then((data: Record<string, Record<string, string>>) => {
+  //     setPmNoteDefaults(data || {});
+  //   }).catch(() => {});
+  // }, []);
+
+  // Immediate reasonableness check (no API call)
+  const checkRollNumberReasonableness = useCallback((rollNumber: string) => {
+    if (!rollNumber || rollNumber.trim() === '' || lastRollNumber === null) {
+      return;
+    }
+
+    const rollNum = parseInt(rollNumber.trim(), 10);
+    if (!isNaN(rollNum)) {
+      const difference = rollNum - lastRollNumber;
+      // If the difference is more than 10 or negative (and not the same), show warning
+      if (difference > 1 || (difference < 0 && rollNum !== lastRollNumber)) {
+        const suggestedValue = (lastRollNumber + 1).toString();
+        setRollNumberWarningDialog({
+          isOpen: true,
+          enteredValue: rollNumber.trim(),
+          suggestedValue,
+        });
+      }
+    }
+  }, [lastRollNumber]);
+
+  // Validate roll number uniqueness (API call - debounced)
+  const validateRollNumberUniqueness = useCallback(async (rollNumber: string, currentPaperId?: number) => {
+    if (!rollNumber || rollNumber.trim() === '') {
+      setRollNumberError('');
+      return;
+    }
+
+    setValidatingRollNumber(true);
+    setRollNumberError('');
+
+    try {
+      // Check if roll number exists
+      const response = await paperAPI.list({ search: rollNumber.trim(), page_size: '100' });
+      if (response && response.results) {
+        const existingPaper = response.results.find(
+          (p: Paper) => p.roll_number === rollNumber.trim() && (!currentPaperId || p.id.toString() !== currentPaperId.toString())
+        );
+        
+        if (existingPaper) {
+          setRollNumberError('این شماره رول قبلاً استفاده شده است.');
+        }
+      }
+
+      setValidatingRollNumber(false);
+    } catch (error) {
+      showToast('error','نا موفق در برسی تکراری نبودن شماره رول | از اتصال اینترنت مطمئن شوید و دوباره وارد این بخش شوید');
+      console.error('Roll number validation error:', error);
+      setValidatingRollNumber(false);
+    }
+  }, []);
+
+  const updateFormData = (field: keyof Paper, value: any) => {
+    console.log(`Updating field ${field} with value:`, value);
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      console.log(`New form data for ${field}:`, newData);
+      return newData;
+    });
+
+    // Clear error when user starts typing (for roll number)
+    if (field === 'roll_number') {
+      setRollNumberError('');
+    }
+  };
+
+  // Handle roll number validation on blur (when user leaves the field)
+  const handleRollNumberBlur = () => {
+    const rollNumber = formData.roll_number;
+    if (!rollNumber || rollNumber.trim() === '') {
+      return;
+    }
+
+    // Immediate reasonableness check (no API call)
+    checkRollNumberReasonableness(rollNumber);
+
+    // Uniqueness check (API call)
+    const paperId = paper?.id ? parseInt(paper.id, 10) : undefined;
+    validateRollNumberUniqueness(rollNumber, paperId);
+  };
+
+
+  const handleMaterialToggle = (materialId: string) => {
+    setSelectedMaterials(prev => {
+      const newSelection = { ...prev };
+      if (newSelection[materialId]) {
+        delete newSelection[materialId];
+      } else {
+        // Get suggested amount or default to 1
+        const suggestedAmounts = suggestions.materialUsageAmounts[materialId];
+        const defaultAmount = suggestedAmounts?.length ? suggestedAmounts[0] : 1;
+        newSelection[materialId] = {
+          val: defaultAmount,
+          brand: '',
+          text: '',
+          Soluble_in_water: undefined
+        };
+      }
+      return newSelection;
+    });
+  };
+
+  const handleMaterialAmountChange = (materialId: string, amount: number | undefined) => {
+    setSelectedMaterials(prev => ({
+      ...prev,
+      [materialId]: {
+        ...prev[materialId],
+        val: amount
+      }
+    }));
+  };
+
+  const handleMaterialBrandChange = (materialId: string, brand: string) => {
+    setSelectedMaterials(prev => ({
+      ...prev,
+      [materialId]: {
+        ...prev[materialId],
+        brand
+      }
+    }));
+  };
+
+  const handleMaterialDescriptionChange = (materialId: string, text: string) => {
+    setSelectedMaterials(prev => ({
+      ...prev,
+      [materialId]: {
+        ...prev[materialId],
+        text
+      }
+    }));
+  };
+
+  const handleMaterialSolubleInWaterChange = (materialId: string, value: number | undefined) => {
+    setSelectedMaterials(prev => ({
+      ...prev,
+      [materialId]: {
+        ...prev[materialId],
+        Soluble_in_water: value
+      }
+    }));
+  };
+
+  const midStr = (id: string | number) => String(id);
+
+  const handlePMSettingChange = (machineId: string | number, field: 'bottom' | 'top' | 'fructose_temperature_before_press' | 'paper_temperature_before_dryer3' | 'dryer3_first_cylinder_temperature' | 'cylinder_temperature_before_press' | 'cylinder_temperature_after_press' | 'paper_temperature_before_starch' | 'paper_temperature_before_pop_reel', value: string | number | undefined) => {
+    const k = midStr(machineId);
+    setPmSettings(prev => ({
+      ...prev,
+      [k]: {
+        ...prev[k] || { bottom: '', top: '' },
+        [field]: value
+      }
+    }));
+  };
+
+  const handlePMSettingDetailChange = (machineId: string | number, fieldKey: string, value: string) => {
+    const k = midStr(machineId);
+    setPmSettings(prev => {
+      const cur = prev[k] || { bottom: '', top: '' };
+      const nextDetails: Record<string, string> = { ...(cur.details || {}) };
+      const raw = value != null ? String(value) : '';
+      nextDetails[fieldKey] = raw;
+      return {
+        ...prev,
+        [k]: { ...cur, details: Object.keys(nextDetails).length > 0 ? nextDetails : undefined }
+      };
+    });
+  };
+
+  const getPmNoteValue = (machineId: string | number, fieldKey: string): string => {
+    const cur = pmSettings[midStr(machineId)];
+    const fromDetails = cur?.details?.[fieldKey];
+    if (fromDetails !== undefined) return typeof fromDetails === 'string' ? fromDetails : '';
+    //return pmNoteDefaults[midStr(machineId)]?.[fieldKey] ?? '';
+    return '';
+  };
+
+  const getPmNoteDisplay = (machineId: string | number, fieldKey: string): string => {
+    const cur = pmSettings[midStr(machineId)];
+    const fromDetails = cur?.details?.[fieldKey];
+    return (fromDetails != null && fromDetails !== '') ? fromDetails : '';
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!formData.date || !formData.sampling_start_time || !formData.sampling_end_time || 
+        !formData.ProductionLine ||
+        !formData.roll_number || !formData.responsible_person_name || 
+        formData.ash_percentage === undefined || formData.ash_percentage === null ||
+        formData.cub === undefined || formData.cub === null) {
+      showToast('error', 'لطفاً فیلدهای اجباری را تکمیل کنید');
+      return;
+    }
+
+    try {
+      if (formData.burst_test) {
+        if(!parseFloat(formData.burst_test)) {
+          showToast('error', 'فیلد burst را اصلاح کنید');
+          return;
+        }
+        formData.burst_test = String(parseFloat(formData.burst_test));
+      }
+    } catch {
+      showToast('error', 'بعضی اعداد به درستی وارد نشدند لطفا دوباره چک کنید');
+      return;
+    }
+
+    // Check roll number validation
+    if (rollNumberError) {
+      showToast('error', 'لطفاً شماره رول معتبری وارد کنید');
+      return;
+    }
+
+    // If still validating, wait a bit
+    if (validatingRollNumber) {
+      showToast('error', 'لطفاً صبر کنید تا اعتبارسنجی شماره رول انجام شود');
+      return;
+    }
+
+    // Build material usage JSON string
+    const materialUsageData = Object.entries(selectedMaterials).reduce((acc, [id, data]) => {
+      // Only include materials with valid values
+      if (data.val !== undefined && data.val !== null) {
+        acc[id] = {
+          val: data.val,
+          brand: data.brand,
+          text: data.text,
+          ...(data.Soluble_in_water !== undefined && data.Soluble_in_water !== null ? { Soluble_in_water: data.Soluble_in_water } : {})
+        };
+      }
+      return acc;
+    }, {} as {[id: string]: {val: number, brand: string, text: string, Soluble_in_water?: number}});
+    
+    const materialUsageString = JSON.stringify(materialUsageData);
+
+    // Build profile_details JSON string
+    const profileDetailsData = Object.entries(profileDetails).reduce((acc, [key, value]) => {
+      if (value !== undefined && value !== null) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as {[key: string]: number});
+    const profileDetailsString = JSON.stringify(profileDetailsData);
+
+    const PM_NOTE_KEYS = ['bottom', 'top', 'cylinder_temperature_before_press', 'cylinder_temperature_after_press', 'paper_temperature_before_starch', 'fructose_temperature_before_press', 'paper_temperature_before_dryer3', 'dryer3_first_cylinder_temperature', 'paper_temperature_before_pop_reel'] as const;
+    const hasPmFieldValue = (s: typeof pmSettings[string], key: string): boolean => {
+      if (key === 'bottom' || key === 'top') return (s[key as 'bottom' | 'top'] ?? '').toString().trim() !== '';
+      const v = s[key as keyof typeof s];
+      return v != null && v !== undefined && v !== '';
+    };
+    const pmSettingsArray = Object.entries(pmSettings).map(([machineId, setting]) => {
+      const payload: { production_machine: string; bottom: string; top: string; details?: Record<string, string>; [k: string]: unknown } = {
+        production_machine: machineId,
+        bottom: setting.bottom || '',
+        top: setting.top || '',
+        fructose_temperature_before_press: setting.fructose_temperature_before_press,
+        paper_temperature_before_dryer3: setting.paper_temperature_before_dryer3,
+        dryer3_first_cylinder_temperature: setting.dryer3_first_cylinder_temperature,
+        cylinder_temperature_before_press: setting.cylinder_temperature_before_press,
+        cylinder_temperature_after_press: setting.cylinder_temperature_after_press,
+        paper_temperature_before_starch: setting.paper_temperature_before_starch,
+        paper_temperature_before_pop_reel: setting.paper_temperature_before_pop_reel
+      };
+      const detailsOut: Record<string, string> = {};
+      for (const fk of PM_NOTE_KEYS) {
+        if (!hasPmFieldValue(setting, fk)) continue;
+        const fromDetails = setting.details?.[fk];
+        if (fromDetails !== undefined) {
+          if (typeof fromDetails === 'string' && fromDetails.trim() !== '') detailsOut[fk] = fromDetails.trim();
+        } else {
+          const def = pmNoteDefaults[machineId]?.[fk];
+          if (def != null && String(def).trim() !== '') detailsOut[fk] = String(def).trim();
+        }
+      }
+      if (Object.keys(detailsOut).length > 0) payload.details = detailsOut;
+      return payload;
+    });
+
+    // Clean form data - convert empty strings to undefined for numeric fields
+    const cleanFormData = (data: any) => {
+      const cleaned: any = {};
+      Object.keys(data).forEach(key => {
+        const value = data[key];
+        
+        // Don't convert values to undefined - preserve the actual form state
+        if (value === undefined || value === null) {
+          // Keep undefined/null as is
+          cleaned[key] = value;
+        } else if (typeof value === 'string') {
+          // For strings, keep empty strings as empty strings
+          cleaned[key] = value;
+        } else if (typeof value === 'number') {
+          // For numbers, keep as is (including 0)
+          cleaned[key] = value;
+        } else if (typeof value === 'boolean') {
+          // For booleans, keep as is
+          cleaned[key] = value;
+        } else {
+          cleaned[key] = value;
+        }
+      });
+      return cleaned;
+    };
+
+    const cleanedFormData = cleanFormData(formData);
+    console.log('Original form data:', formData);
+    console.log('Cleaned form data:', cleanedFormData);
+
+    // Create paper data with proper typing
+    const paperData: any = {
+      date: cleanedFormData.date,
+      sampling_start_time: cleanedFormData.sampling_start_time,
+      sampling_end_time: cleanedFormData.sampling_end_time,
+      ProductionLine: cleanedFormData.ProductionLine,
+      roll_number: cleanedFormData.roll_number,
+      responsible_person_name: cleanedFormData.responsible_person_name,
+      shift: cleanedFormData.shift,
+      PaperType: cleanedFormData.PaperType || null,
+      paper_size: cleanedFormData.paper_size,
+      NumberOfTears: cleanedFormData.NumberOfTears,
+      real_grammage: cleanedFormData.real_grammage,
+      humidity: cleanedFormData.humidity,
+      ash_percentage: cleanedFormData.ash_percentage,
+      cub: cleanedFormData.cub,
+      profile: cleanedFormData.profile,
+      profile_details: profileDetailsString || null,
+      density_valve: cleanedFormData.density_valve,
+      diluting_valve: cleanedFormData.diluting_valve,
+      density_valve2: cleanedFormData.density_valve2,
+      diluting_valve2: cleanedFormData.diluting_valve2,
+      density_valve3: cleanedFormData.density_valve3,
+      diluting_valve3: cleanedFormData.diluting_valve3,
+      density_valve4: cleanedFormData.density_valve4,
+      diluting_valve4: cleanedFormData.diluting_valve4,
+      density_valve5: cleanedFormData.density_valve5,
+      diluting_valve5: cleanedFormData.diluting_valve5,
+      burst_test: cleanedFormData.burst_test,
+      tensile_strength_md: cleanedFormData.tensile_strength_md,
+      tensile_strength_cd: cleanedFormData.tensile_strength_cd,
+      cct1: cleanedFormData.cct1,
+      cct2: cleanedFormData.cct2,
+      cct3: cleanedFormData.cct3,
+      cct4: cleanedFormData.cct4,
+      cct5: cleanedFormData.cct5,
+      rct1: cleanedFormData.rct1,
+      rct2: cleanedFormData.rct2,
+      rct3: cleanedFormData.rct3,
+      rct4: cleanedFormData.rct4,
+      rct5: cleanedFormData.rct5,
+      tearing_time: cleanedFormData.tearing_time,
+      ProductionDowntime: cleanedFormData.ProductionDowntime,
+      CauseOfTearing: cleanedFormData.CauseOfTearing,
+      calender_applied: cleanedFormData.calender_applied,
+      machine_speed: cleanedFormData.machine_speed,
+      material_usage: materialUsageString || '',
+      pm_settings: pmSettingsArray,
+    };
+
+    console.log('Final paper data being sent:', paperData);
+    onSave(paperData);
+    showToast('success', paper ? 'رکورد با موفقیت ویرایش شد' : 'رکورد جدید ایجاد شد');
+  };
+
+  const isEditing = !!paper;
+  const handleDeleteClick = () => {
+    setDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!paper) return;
+    const deletedId = String(paper.id);
+    try {
+      await deletePaper(deletedId);
+      showToast('success', 'رکورد کاغذ با موفقیت حذف شد');
+      setDeleteDialog(false);
+      setJustDeleted(deletedId);
+    } catch (error) {
+      showToast('error', 'خطا در حذف رکورد کاغذ');
+    }
+  };
+
+  useEffect(() => {
+    if (justDeleted == null) return;
+    const timer = setTimeout(() => {
+      setJustDeleted(null);
+      onCancel();
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [justDeleted, onCancel]);
+
+  const handleRestorePaper = async () => {
+    if (justDeleted == null) return;
+    setRestoring(true);
+    try {
+      await paperAPI.restore(justDeleted);
+      showToast('success', t('paper.restoreSuccess'));
+      setJustDeleted(null);
+      onCancel();
+    } catch {
+      showToast('error', t('paper.restoreError'));
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialog(false);
+  };
+
+  return (
+    <div className={`space-y-6 ${readOnly ? 'opacity-75' : ''}`}>
+      {/* 5s return alert with progress animation, then return to list */}
+      {justDeleted !== null && (
+        <div className="fixed top-20 sm:top-24 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-[100] shadow-xl rounded-lg bg-white border-2 border-primary-200 overflow-hidden">
+          <div className="p-3 flex items-center gap-3">
+            <span className="flex-1 text-sm text-gray-800">{t('common.undoDeleteMessage')}</span>
+            <button type="button" onClick={handleRestorePaper} disabled={restoring} className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium">
+              {restoring ? '...' : t('common.return')}
+            </button>
+            <button type="button" onClick={() => { setJustDeleted(null); onCancel(); }} className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="h-1 bg-primary-100 rounded-b-lg overflow-hidden">
+            <div className="return-alert-progress h-full bg-primary-500 rounded-b" />
+          </div>
+        </div>
+      )}
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+            <FileText className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {readOnly ? 'مشاهده رکورد کاغذ' : isEditing ? 'ویرایش رکورد کاغذ' : 'ایجاد رکورد جدید کاغذ'}
+            </h2>
+            <p className="text-gray-500 mt-1 text-sm">
+              {readOnly ? 'اطلاعات رکورد تولید کاغذ' : 'اطلاعات کامل رکورد تولید کاغذ را وارد کنید'}
+            </p>
+          </div>
+        </div>
+        
+        <button onClick={onCancel} className="px-4 py-2.5 bg-red-500 text-white font-medium hover:bg-red-600 rounded-lg transition-all duration-200 inline-flex items-center shadow-sm hover:shadow-md">
+          <ArrowLeft className="w-4 h-4 ml-2" />
+          بازگشت
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className={`space-y-8 ${readOnly ? 'pointer-events-none' : ''}`}>
+        {/* Basic Information */}
+        <div className="card border-l-4 border-l-blue-500 shadow-md hover:shadow-lg transition-shadow duration-200">
+          <div className="card-header bg-gradient-to-r from-blue-50 to-transparent">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-600" />
+              <h3 className="card-title text-blue-900">اطلاعات پایه</h3>
+            </div>
+          </div>
+          <div className="card-body bg-gray-50/50">
+            <div className="field-grid">
+              <div className="form-group">
+                <label className="form-label">
+                 تاریخ <span className="text-error-500 mr-1">*</span>
+                </label>
+                <input
+                    type="text"
+                    required
+                    value={formData.date || ''}
+                    className='form-input pl-12 time-input'
+                    onChange={(e) => updateFormData('date', e.target.value)}
+                    placeholder="تاریخ با فرمت yyyy-mm-dd را وارد کنید"
+                  />
+              </div>
+              
+              <TimePicker
+                label="زمان شروع رول"
+                required
+                value={formData.sampling_start_time || ''}
+                onChange={(value) => updateFormData('sampling_start_time', value)}
+              />
+              
+              <TimePicker
+                label="زمان خروج رول"
+                required
+                value={formData.sampling_end_time || ''}
+                onChange={(value) => updateFormData('sampling_end_time', value)}
+              />
+              
+              <div className="form-group">
+                <label className="form-label">
+                  خط تولید <span className="text-error-500 mr-1">*</span>
+                </label>
+                <select
+                  required
+                  value={formData.ProductionLine || 2}
+                  onChange={(e) => updateFormData('ProductionLine', parseInt(e.target.value))}
+                  className="form-select"
+                  disabled={readOnly}
+                >
+                  <option value={2}>PM2-140</option>
+                  <option value={3}>PM3-250</option>
+                  <option value={4}>PM4-220</option>
+                </select>
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">
+                  شماره رول <span className="text-error-500 mr-1">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={formData.roll_number || ''}
+                    onChange={(e) => updateFormData('roll_number', e.target.value)}
+                    onBlur={handleRollNumberBlur}
+                    className={`form-input ${rollNumberError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''} ${validatingRollNumber ? 'pr-10' : ''}`}
+                    placeholder="شماره رول را وارد کنید"
+                    disabled={readOnly}
+                  />
+                  {validatingRollNumber && (
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                      <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
+                {rollNumberError && (
+                  <p className="mt-1 text-sm text-red-600">{rollNumberError}</p>
+                )}
+                {lastRollNumber !== null && !rollNumberError && formData.roll_number && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    آخرین شماره رول: {lastRollNumber} (پیشنهاد: {lastRollNumber + 1})
+                  </p>
+                )}
+              </div>
+              
+              <AutoComplete
+                label="نام مسئول"
+                required
+                value={formData.responsible_person_name || ''}
+                onChange={(value) => updateFormData('responsible_person_name', value)}
+                suggestions={suggestions.responsiblePersonNames}
+                placeholder="نام مسئول تولید"
+              />
+              
+              <div className="form-group">
+                <label className="form-label">شیفت</label>
+                <select
+                  value={formData.shift || ''}
+                  onChange={(e) => updateFormData('shift', e.target.value || undefined)}
+                  className="form-select"
+                  disabled={readOnly}
+                >
+                  <option value="">انتخاب کنید</option>
+                  <option value="day">روزانه</option>
+                  <option value="night">شبانه</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Paper Specifications */}
+        <div className="card border-l-4 border-l-purple-500 shadow-md hover:shadow-lg transition-shadow duration-200">
+          <div className="card-header bg-gradient-to-r from-purple-50 to-transparent">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-purple-600" />
+              <h3 className="card-title text-purple-900">مشخصات کاغذ</h3>
+            </div>
+          </div>
+          <div className="card-body bg-gray-50/50">
+            <div className="field-grid">
+              <div className="form-group">
+                <label className="form-label">نوع کاغذ</label>
+                <select
+                  value={formData.PaperType || ''}
+                  onChange={(e) => updateFormData('PaperType', e.target.value || undefined)}
+                  className="form-select"
+                  disabled={readOnly}
+                >
+                  <option value="">انتخاب کنید</option>
+                  {paperTypes.map((pt) => (
+                    <option key={pt.id} value={pt.id}>
+                      {pt.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <AutoComplete
+                label="عرض کاغذ"
+                value={formData.paper_size === undefined || formData.paper_size === null ? '' : formData.paper_size.toString()}
+                onChange={(value) => updateFormData('paper_size', value ? parseInt(value) : undefined)}
+                suggestions={suggestions.paperSizeSuggestions.map((s: number) => s.toString())}
+                placeholder="اندازه به سانتی‌متر"
+              />
+              
+              <div className="form-group">
+                <label className="form-label">گراماژ</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.real_grammage === undefined || formData.real_grammage === null ? '' : formData.real_grammage}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('real_grammage', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('real_grammage', undefined);
+                      } else {
+                        updateFormData('real_grammage', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                  placeholder="گرم بر متر مربع"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">رطوبت</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.humidity === undefined || formData.humidity === null ? '' : formData.humidity}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('humidity', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('humidity', undefined);
+                      } else {
+                        updateFormData('humidity', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                  placeholder="درصد رطوبت"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">
+                  ash <span className="text-red-500 mr-1">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  required
+                  value={formData.ash_percentage === undefined || formData.ash_percentage === null ? '' : formData.ash_percentage}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('ash_percentage', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('ash_percentage', undefined);
+                      } else {
+                        updateFormData('ash_percentage', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                  placeholder="ash"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">
+                  کاب <span className="text-red-500 mr-1">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  required
+                  value={formData.cub === undefined || formData.cub === null ? '' : formData.cub.toString()}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('cub', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('cub', undefined);
+                      } else {
+                        updateFormData('cub', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                  placeholder="کاب"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">پروفایل</label>
+                <select
+                  value={formData.profile || ''}
+                  onChange={(e) => updateFormData('profile', e.target.value || undefined)}
+                  className="form-select"
+                >
+                  <option value="">انتخاب کنید</option>
+                  <option value="1">+۱g-</option>
+                  <option value="2">+۲g-</option>
+                  <option value="3">+۳g-</option>
+                  <option value="4">+۴g-</option>
+                  <option value="5">بیشتر از 5 گرم نوسان سر تا سر کاغذ</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Profile Details - 24 numeric inputs */}
+        <div className="card border-l-4 border-l-purple-500 shadow-md hover:shadow-lg transition-shadow duration-200">
+          <div className="card-header bg-gradient-to-r from-purple-50 to-transparent">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-purple-600" />
+              <h3 className="card-title text-purple-900">جزئیات پروفایل</h3>
+            </div>
+          </div>
+          <div className="card-body bg-gray-50/50">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-12 gap-4 sm:gap-6">
+              {Array.from({ length: 24 }, (_, i) => {
+                const index = (i + 1).toString();
+                const label = index === '1' 
+                  ? '1 ( سالن )' 
+                  : index === '24' 
+                  ? '24 ( دیوار-دیوار )'
+                  : index;
+                return (
+                  <div key={index} className="form-group">
+                    <label className="form-label">{label}</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={profileDetails[index] === undefined || profileDetails[index] === null ? '' : profileDetails[index]}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '') {
+                          setProfileDetails(prev => {
+                            const newDetails = { ...prev };
+                            delete newDetails[index];
+                            return newDetails;
+                          });
+                        } else {
+                          const numValue = parseFloat(value);
+                          if (!isNaN(numValue)) {
+                            setProfileDetails(prev => ({
+                              ...prev,
+                              [index]: numValue
+                            }));
+                          }
+                        }
+                      }}
+                      className="form-input number-input"
+                      placeholder={label}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Physical Specifications */}
+        <div className="card border-l-4 border-l-amber-500 shadow-md hover:shadow-lg transition-shadow duration-200">
+          <div className="card-header bg-gradient-to-r from-amber-50 to-transparent">
+            <div className="flex items-center gap-2">
+              <Gauge className="w-5 h-5 text-amber-600" />
+              <h3 className="card-title text-amber-900">تنظیمات غلظت سنج</h3>
+            </div>
+          </div>
+          <div className="card-body bg-gray-50/50">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+              <div className="form-group">
+                <label className="form-label">غلظت سنج 1 ( حوض 8 )</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.density_valve === undefined || formData.density_valve === null ? '' : formData.density_valve}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('density_valve', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('density_valve', undefined);
+                      } else {
+                        updateFormData('density_valve', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">رقیق کننده غلظت سنج 1 ( حوض 8 )</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.diluting_valve === undefined || formData.diluting_valve === null ? '' : formData.diluting_valve}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('diluting_valve', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('diluting_valve', undefined);
+                      } else {
+                        updateFormData('diluting_valve', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">غلظت سنج 2</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.density_valve2 === undefined || formData.density_valve2 === null ? '' : formData.density_valve2}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('density_valve2', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('density_valve2', undefined);
+                      } else {
+                        updateFormData('density_valve2', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">رقیق کننده غلظت سنج 2</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.diluting_valve2 === undefined || formData.diluting_valve2 === null ? '' : formData.diluting_valve2}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('diluting_valve2', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('diluting_valve2', undefined);
+                      } else {
+                        updateFormData('diluting_valve2', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">غلظت سنج 3</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.density_valve3 === undefined || formData.density_valve3 === null ? '' : formData.density_valve3}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('density_valve3', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('density_valve3', undefined);
+                      } else {
+                        updateFormData('density_valve3', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">رقیق کننده غلظت سنج 3</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.diluting_valve3 === undefined || formData.diluting_valve3 === null ? '' : formData.diluting_valve3}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('diluting_valve3', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('diluting_valve3', undefined);
+                      } else {
+                        updateFormData('diluting_valve3', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">غلظت سنج 4</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.density_valve4 === undefined || formData.density_valve4 === null ? '' : formData.density_valve4}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('density_valve4', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('density_valve4', undefined);
+                      } else {
+                        updateFormData('density_valve4', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">رقیق کننده غلظت سنج 4</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.diluting_valve4 === undefined || formData.diluting_valve4 === null ? '' : formData.diluting_valve4}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('diluting_valve4', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('diluting_valve4', undefined);
+                      } else {
+                        updateFormData('diluting_valve4', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">غلظت سنج 5</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.density_valve5 === undefined || formData.density_valve5 === null ? '' : formData.density_valve5}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('density_valve5', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('density_valve5', undefined);
+                      } else {
+                        updateFormData('density_valve5', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">رقیق کننده غلظت سنج 5</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.diluting_valve5 === undefined || formData.diluting_valve5 === null ? '' : formData.diluting_valve5}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('diluting_valve5', undefined);
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('diluting_valve5', undefined);
+                      } else {
+                        updateFormData('diluting_valve5', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                />
+              </div>
+            </div>
+
+            {/* PM Settings for each Production Machine */}
+            {Array.isArray(productionMachines) && productionMachines.length > 0 && (
+              <div className="mt-6 pt-6 border-t-2 border-gray-300">
+                <div className="flex items-center gap-2 mb-4">
+                  <Factory className="w-5 h-5 text-amber-600" />
+                  <h4 className="text-lg font-semibold text-gray-900">تنظیمات ماشین‌های تولید</h4>
+                </div>
+                <div className="space-y-4">
+                  {productionMachines.map((machine: ProductionMachine, index: number) => {
+                    const machineKey = midStr(machine.id);
+                    const setting = pmSettings[machineKey] || { bottom: '', top: '' };
+                    const bgColors = ['bg-blue-50', 'bg-amber-50', 'bg-emerald-50', 'bg-purple-50'];
+                    const borderColors = ['border-blue-200', 'border-amber-200', 'border-emerald-200', 'border-purple-200'];
+                    const textColors = ['text-blue-700', 'text-amber-700', 'text-emerald-700', 'text-purple-700'];
+                    const bgColor = bgColors[index % bgColors.length];
+                    const borderColor = borderColors[index % borderColors.length];
+                    const textColor = textColors[index % textColors.length];
+                    
+                    return (
+                      <div key={machine.id} className={`p-4 rounded-lg border-2 ${bgColor} ${borderColor}`}>
+                        <h5 className={`font-semibold mb-3 ${textColor}`}>{machine.title}</h5>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                          <div className="form-group">
+                            <div className="flex items-center gap-1 mb-1">
+                              <label className="form-label mb-0">شیر خمیر هدباکس پایین</label>
+                              {!readOnly && (
+                                <button type="button" onClick={() => setOpenNote(openNote?.machineId === machineKey && openNote?.fieldKey === 'bottom' ? null : { machineId: machineKey, fieldKey: 'bottom' })} className={`p-0.5 rounded hover:bg-gray-200 ${getPmNoteDisplay(machineKey, 'bottom') ? 'text-amber-600' : 'text-gray-500'}`} title="یادداشت">
+                                  <MessageSquare className="w-4 h-4" />
+                                </button>
+                              )}
+                              {readOnly && getPmNoteDisplay(machineKey, 'bottom') && <MessageSquare className="w-4 h-4 text-amber-600" aria-hidden />}
+                            </div>
+                            <input
+                              type="text"
+                              value={setting.bottom}
+                              onChange={(e) => handlePMSettingChange(machineKey, 'bottom', e.target.value)}
+                              className="form-input"
+                              placeholder="هدباکس پایین"
+                              disabled={readOnly}
+                            />
+                            {(openNote?.machineId === machineKey && openNote?.fieldKey === 'bottom') ? (
+                              !readOnly && <input type="text" className="form-input mt-1 text-sm" placeholder="یادداشت" value={getPmNoteValue(machineKey, 'bottom')} onChange={(e) => handlePMSettingDetailChange(machineKey, 'bottom', e.target.value)} />
+                            ) : getPmNoteDisplay(machineKey, 'bottom') ? (
+                              <div className="mt-1 text-xs text-amber-800/90 bg-amber-50/70 rounded px-2 py-1 border border-amber-200" dir="rtl">{getPmNoteDisplay(machineKey, 'bottom')}</div>
+                            ) : null}
+                          </div>
+                          <div className="form-group">
+                            <div className="flex items-center gap-1 mb-1">
+                              <label className="form-label mb-0">شیر خمیر هدباکس بالا</label>
+                              {!readOnly && (
+                                <button type="button" onClick={() => setOpenNote(openNote?.machineId === machineKey && openNote?.fieldKey === 'top' ? null : { machineId: machineKey, fieldKey: 'top' })} className={`p-0.5 rounded hover:bg-gray-200 ${getPmNoteDisplay(machineKey, 'top') ? 'text-amber-600' : 'text-gray-500'}`} title="یادداشت">
+                                  <MessageSquare className="w-4 h-4" />
+                                </button>
+                              )}
+                              {readOnly && getPmNoteDisplay(machineKey, 'top') && <MessageSquare className="w-4 h-4 text-amber-600" aria-hidden />}
+                            </div>
+                            <input
+                              type="text"
+                              value={setting.top}
+                              onChange={(e) => handlePMSettingChange(machineKey, 'top', e.target.value)}
+                              className="form-input"
+                              placeholder="هدباکس بالا"
+                              disabled={readOnly}
+                            />
+                            {(openNote?.machineId === machineKey && openNote?.fieldKey === 'top') ? (
+                              !readOnly && <input type="text" className="form-input mt-1 text-sm" placeholder="یادداشت" value={getPmNoteValue(machineKey, 'top')} onChange={(e) => handlePMSettingDetailChange(machineKey, 'top', e.target.value)} />
+                            ) : getPmNoteDisplay(machineKey, 'top') ? (
+                              <div className="mt-1 text-xs text-amber-800/90 bg-amber-50/70 rounded px-2 py-1 border border-amber-200" dir="rtl">{getPmNoteDisplay(machineKey, 'top')}</div>
+                            ) : null}
+                          </div>
+                          <div className="form-group">
+                            <div className="flex items-center gap-1 mb-1">
+                              <label className="form-label mb-0">دمای اصلی خشک کن یک و دو</label>
+                              {!readOnly && (
+                                <button type="button" onClick={() => setOpenNote(openNote?.machineId === machineKey && openNote?.fieldKey === 'cylinder_temperature_before_press' ? null : { machineId: machineKey, fieldKey: 'cylinder_temperature_before_press' })} className={`p-0.5 rounded hover:bg-gray-200 ${getPmNoteDisplay(machineKey, 'cylinder_temperature_before_press') ? 'text-amber-600' : 'text-gray-500'}`} title="یادداشت">
+                                  <MessageSquare className="w-4 h-4" />
+                                </button>
+                              )}
+                              {readOnly && getPmNoteDisplay(machineKey, 'cylinder_temperature_before_press') && <MessageSquare className="w-4 h-4 text-amber-600" aria-hidden />}
+                            </div>
+                            <input
+                              type="text"
+                              value={setting.cylinder_temperature_before_press === undefined || setting.cylinder_temperature_before_press === null ? '' : setting.cylinder_temperature_before_press}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '') {
+                                  handlePMSettingChange(machineKey, 'cylinder_temperature_before_press', undefined);
+                                } else {
+                                  const numValue = parseFloat(value);
+                                  if (isNaN(numValue)) {
+                                    handlePMSettingChange(machineKey, 'cylinder_temperature_before_press', undefined);
+                                  } else {
+                                    handlePMSettingChange(machineKey, 'cylinder_temperature_before_press', numValue);
+                                  }
+                                }
+                              }}
+                              className="form-input"
+                              placeholder="خشک کن یک و دو"
+                              disabled={readOnly}
+                            />
+                            {(openNote?.machineId === machineKey && openNote?.fieldKey === 'cylinder_temperature_before_press') ? (
+                              !readOnly && <input type="text" className="form-input mt-1 text-sm" placeholder="یادداشت" value={getPmNoteValue(machineKey, 'cylinder_temperature_before_press')} onChange={(e) => handlePMSettingDetailChange(machineKey, 'cylinder_temperature_before_press', e.target.value)} />
+                            ) : getPmNoteDisplay(machineKey, 'cylinder_temperature_before_press') ? (
+                              <div className="mt-1 text-xs text-amber-800/90 bg-amber-50/70 rounded px-2 py-1 border border-amber-200" dir="rtl">{getPmNoteDisplay(machineKey, 'cylinder_temperature_before_press')}</div>
+                            ) : null}
+                          </div>
+                          <div className="form-group">
+                            <div className="flex items-center gap-1 mb-1">
+                              <label className="form-label mb-0">دمای اصلی خشک کن سه</label>
+                              {!readOnly && (
+                                <button type="button" onClick={() => setOpenNote(openNote?.machineId === machineKey && openNote?.fieldKey === 'cylinder_temperature_after_press' ? null : { machineId: machineKey, fieldKey: 'cylinder_temperature_after_press' })} className={`p-0.5 rounded hover:bg-gray-200 ${getPmNoteDisplay(machineKey, 'cylinder_temperature_after_press') ? 'text-amber-600' : 'text-gray-500'}`} title="یادداشت">
+                                  <MessageSquare className="w-4 h-4" />
+                                </button>
+                              )}
+                              {readOnly && getPmNoteDisplay(machineKey, 'cylinder_temperature_after_press') && <MessageSquare className="w-4 h-4 text-amber-600" aria-hidden />}
+                            </div>
+                            <input
+                              type="text"
+                              value={setting.cylinder_temperature_after_press === undefined || setting.cylinder_temperature_after_press === null ? '' : setting.cylinder_temperature_after_press}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '') {
+                                  handlePMSettingChange(machineKey, 'cylinder_temperature_after_press', undefined);
+                                } else {
+                                  const numValue = parseFloat(value);
+                                  if (isNaN(numValue)) {
+                                    handlePMSettingChange(machineKey, 'cylinder_temperature_after_press', undefined);
+                                  } else {
+                                    handlePMSettingChange(machineKey, 'cylinder_temperature_after_press', numValue);
+                                  }
+                                }
+                              }}
+                              className="form-input"
+                              placeholder="خشک کن سه"
+                              disabled={readOnly}
+                            />
+                            {(openNote?.machineId === machineKey && openNote?.fieldKey === 'cylinder_temperature_after_press') ? (
+                              !readOnly && <input type="text" className="form-input mt-1 text-sm" placeholder="یادداشت" onChange={(e) => handlePMSettingDetailChange(machineKey, 'cylinder_temperature_after_press', e.target.value)} />
+                            ) : getPmNoteDisplay(machineKey, 'cylinder_temperature_after_press') ? (
+                              <div className="mt-1 text-xs text-amber-800/90 bg-amber-50/70 rounded px-2 py-1 border border-amber-200" dir="rtl">{getPmNoteDisplay(machineKey, 'cylinder_temperature_after_press')}</div>
+                            ) : null}
+                          </div>
+                          <div className="form-group">
+                            <div className="flex items-center gap-1 mb-1">
+                              <label className="form-label mb-0">دمای کاغذ قبل از ورود به سایز پرس</label>
+                              {!readOnly && (
+                                <button type="button" onClick={() => setOpenNote(openNote?.machineId === machineKey && openNote?.fieldKey === 'paper_temperature_before_starch' ? null : { machineId: machineKey, fieldKey: 'paper_temperature_before_starch' })} className={`p-0.5 rounded hover:bg-gray-200 ${getPmNoteDisplay(machineKey, 'paper_temperature_before_starch') ? 'text-amber-600' : 'text-gray-500'}`} title="یادداشت">
+                                  <MessageSquare className="w-4 h-4" />
+                                </button>
+                              )}
+                              {readOnly && getPmNoteDisplay(machineKey, 'paper_temperature_before_starch') && <MessageSquare className="w-4 h-4 text-amber-600" aria-hidden />}
+                            </div>
+                            <input
+                              type="text"
+                              value={setting.paper_temperature_before_starch === undefined || setting.paper_temperature_before_starch === null ? '' : setting.paper_temperature_before_starch}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '') {
+                                  handlePMSettingChange(machineKey, 'paper_temperature_before_starch', undefined);
+                                } else {
+                                  const numValue = parseFloat(value);
+                                  if (isNaN(numValue)) {
+                                    handlePMSettingChange(machineKey, 'paper_temperature_before_starch', undefined);
+                                  } else {
+                                    handlePMSettingChange(machineKey, 'paper_temperature_before_starch', numValue);
+                                  }
+                                }
+                              }}
+                              className="form-input"
+                              placeholder="قبل از ورود به سایز پرس"
+                              disabled={readOnly}
+                            />
+                            {(openNote?.machineId === machineKey && openNote?.fieldKey === 'paper_temperature_before_starch') ? (
+                              //value={getPmNoteValue(machineKey, 'paper_temperature_before_starch')}
+                              !readOnly && <input type="text" className="form-input mt-1 text-sm" placeholder="یادداشت" value={getPmNoteValue(machineKey, 'paper_temperature_before_starch')}  onChange={(e) => handlePMSettingDetailChange(machineKey, 'paper_temperature_before_starch', e.target.value)} />
+                            ) : getPmNoteDisplay(machineKey, 'paper_temperature_before_starch') ? (
+                              <div className="mt-1 text-xs text-amber-800/90 bg-amber-50/70 rounded px-2 py-1 border border-amber-200" dir="rtl">{getPmNoteDisplay(machineKey, 'paper_temperature_before_starch')}</div>
+                            ) : null}
+                          </div>
+                          <div className="form-group">
+                            <div className="flex items-center gap-1 mb-1">
+                              <label className="form-label mb-0">دمای نشاسته قبل از ورودی سایز پرس</label>
+                              {!readOnly && (
+                                <button type="button" onClick={() => setOpenNote(openNote?.machineId === machineKey && openNote?.fieldKey === 'fructose_temperature_before_press' ? null : { machineId: machineKey, fieldKey: 'fructose_temperature_before_press' })} className={`p-0.5 rounded hover:bg-gray-200 ${getPmNoteDisplay(machineKey, 'fructose_temperature_before_press') ? 'text-amber-600' : 'text-gray-500'}`} title="یادداشت">
+                                  <MessageSquare className="w-4 h-4" />
+                                </button>
+                              )}
+                              {readOnly && getPmNoteDisplay(machineKey, 'fructose_temperature_before_press') && <MessageSquare className="w-4 h-4 text-amber-600" aria-hidden />}
+                            </div>
+                            <input
+                              type="text"
+                              value={setting.fructose_temperature_before_press === undefined || setting.fructose_temperature_before_press === null ? '' : setting.fructose_temperature_before_press}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '') {
+                                  handlePMSettingChange(machineKey, 'fructose_temperature_before_press', undefined);
+                                } else {
+                                  const numValue = parseFloat(value);
+                                  if (isNaN(numValue)) {
+                                    handlePMSettingChange(machineKey, 'fructose_temperature_before_press', undefined);
+                                  } else {
+                                    handlePMSettingChange(machineKey, 'fructose_temperature_before_press', numValue);
+                                  }
+                                }
+                              }}
+                              className="form-input"
+                              placeholder="نشاسته قبل از سایز پرس"
+                              disabled={readOnly}
+                            />
+                            {(openNote?.machineId === machineKey && openNote?.fieldKey === 'fructose_temperature_before_press') ? (
+                              !readOnly && <input type="text" className="form-input mt-1 text-sm" placeholder="یادداشت" value={getPmNoteValue(machineKey, 'fructose_temperature_before_press')} onChange={(e) => handlePMSettingDetailChange(machineKey, 'fructose_temperature_before_press', e.target.value)} />
+                            ) : getPmNoteDisplay(machineKey, 'fructose_temperature_before_press') ? (
+                              <div className="mt-1 text-xs text-amber-800/90 bg-amber-50/70 rounded px-2 py-1 border border-amber-200" dir="rtl">{getPmNoteDisplay(machineKey, 'fructose_temperature_before_press')}</div>
+                            ) : null}
+                          </div>
+                          <div className="form-group">
+                            <div className="flex items-center gap-1 mb-1">
+                              <label className="form-label mb-0">دمای کاغذ قبل از ورود به خشک کن سه</label>
+                              {!readOnly && (
+                                <button type="button" onClick={() => setOpenNote(openNote?.machineId === machineKey && openNote?.fieldKey === 'paper_temperature_before_dryer3' ? null : { machineId: machineKey, fieldKey: 'paper_temperature_before_dryer3' })} className={`p-0.5 rounded hover:bg-gray-200 ${getPmNoteDisplay(machineKey, 'paper_temperature_before_dryer3') ? 'text-amber-600' : 'text-gray-500'}`} title="یادداشت">
+                                  <MessageSquare className="w-4 h-4" />
+                                </button>
+                              )}
+                              {readOnly && getPmNoteDisplay(machineKey, 'paper_temperature_before_dryer3') && <MessageSquare className="w-4 h-4 text-amber-600" aria-hidden />}
+                            </div>
+                            <input
+                              type="text"
+                              value={setting.paper_temperature_before_dryer3 === undefined || setting.paper_temperature_before_dryer3 === null ? '' : setting.paper_temperature_before_dryer3}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '') {
+                                  handlePMSettingChange(machineKey, 'paper_temperature_before_dryer3', undefined);
+                                } else {
+                                  const numValue = parseFloat(value);
+                                  if (isNaN(numValue)) {
+                                    handlePMSettingChange(machineKey, 'paper_temperature_before_dryer3', undefined);
+                                  } else {
+                                    handlePMSettingChange(machineKey, 'paper_temperature_before_dryer3', numValue);
+                                  }
+                                }
+                              }}
+                              className="form-input"
+                              placeholder="قبل از خشک کن سه"
+                              disabled={readOnly}
+                            />
+                            {(openNote?.machineId === machineKey && openNote?.fieldKey === 'paper_temperature_before_dryer3') ? (
+                              !readOnly && <input type="text" className="form-input mt-1 text-sm" placeholder="یادداشت" value={getPmNoteValue(machineKey, 'paper_temperature_before_dryer3')} onChange={(e) => handlePMSettingDetailChange(machineKey, 'paper_temperature_before_dryer3', e.target.value)} />
+                            ) : getPmNoteDisplay(machineKey, 'paper_temperature_before_dryer3') ? (
+                              <div className="mt-1 text-xs text-amber-800/90 bg-amber-50/70 rounded px-2 py-1 border border-amber-200" dir="rtl">{getPmNoteDisplay(machineKey, 'paper_temperature_before_dryer3')}</div>
+                            ) : null}
+                          </div>
+                          <div className="form-group">
+                            <div className="flex items-center gap-1 mb-1">
+                              <label className="form-label mb-0">دمای سیلندر اول خشک کن سه</label>
+                              {!readOnly && (
+                                <button type="button" onClick={() => setOpenNote(openNote?.machineId === machineKey && openNote?.fieldKey === 'dryer3_first_cylinder_temperature' ? null : { machineId: machineKey, fieldKey: 'dryer3_first_cylinder_temperature' })} className={`p-0.5 rounded hover:bg-gray-200 ${getPmNoteDisplay(machineKey, 'dryer3_first_cylinder_temperature') ? 'text-amber-600' : 'text-gray-500'}`} title="یادداشت">
+                                  <MessageSquare className="w-4 h-4" />
+                                </button>
+                              )}
+                              {readOnly && getPmNoteDisplay(machineKey, 'dryer3_first_cylinder_temperature') && <MessageSquare className="w-4 h-4 text-amber-600" aria-hidden />}
+                            </div>
+                            <input
+                              type="text"
+                              value={setting.dryer3_first_cylinder_temperature === undefined || setting.dryer3_first_cylinder_temperature === null ? '' : setting.dryer3_first_cylinder_temperature}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '') {
+                                  handlePMSettingChange(machineKey, 'dryer3_first_cylinder_temperature', undefined);
+                                } else {
+                                  const numValue = parseFloat(value);
+                                  if (isNaN(numValue)) {
+                                    handlePMSettingChange(machineKey, 'dryer3_first_cylinder_temperature', undefined);
+                                  } else {
+                                    handlePMSettingChange(machineKey, 'dryer3_first_cylinder_temperature', numValue);
+                                  }
+                                }
+                              }}
+                              className="form-input"
+                              placeholder="سیلندر اول خشک کن سه"
+                              disabled={readOnly}
+                            />
+                            {(openNote?.machineId === machineKey && openNote?.fieldKey === 'dryer3_first_cylinder_temperature') ? (
+                              !readOnly && <input type="text" className="form-input mt-1 text-sm" placeholder="یادداشت" value={getPmNoteValue(machineKey, 'dryer3_first_cylinder_temperature')} onChange={(e) => handlePMSettingDetailChange(machineKey, 'dryer3_first_cylinder_temperature', e.target.value)} />
+                            ) : getPmNoteDisplay(machineKey, 'dryer3_first_cylinder_temperature') ? (
+                              <div className="mt-1 text-xs text-amber-800/90 bg-amber-50/70 rounded px-2 py-1 border border-amber-200" dir="rtl">{getPmNoteDisplay(machineKey, 'dryer3_first_cylinder_temperature')}</div>
+                            ) : null}
+                          </div>
+                          <div className="form-group">
+                            <div className="flex items-center gap-1 mb-1">
+                              <label className="form-label mb-0">دمای کاغذ قبل از پوپ ریل</label>
+                              {!readOnly && (
+                                <button type="button" onClick={() => setOpenNote(openNote?.machineId === machineKey && openNote?.fieldKey === 'paper_temperature_before_pop_reel' ? null : { machineId: machineKey, fieldKey: 'paper_temperature_before_pop_reel' })} className={`p-0.5 rounded hover:bg-gray-200 ${getPmNoteDisplay(machineKey, 'paper_temperature_before_pop_reel') ? 'text-amber-600' : 'text-gray-500'}`} title="یادداشت">
+                                  <MessageSquare className="w-4 h-4" />
+                                </button>
+                              )}
+                              {readOnly && getPmNoteDisplay(machineKey, 'paper_temperature_before_pop_reel') && <MessageSquare className="w-4 h-4 text-amber-600" aria-hidden />}
+                            </div>
+                            <input
+                              type="text"
+                              value={setting.paper_temperature_before_pop_reel === undefined || setting.paper_temperature_before_pop_reel === null ? '' : setting.paper_temperature_before_pop_reel}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '') {
+                                  handlePMSettingChange(machineKey, 'paper_temperature_before_pop_reel', undefined);
+                                } else {
+                                  const numValue = parseFloat(value);
+                                  if (isNaN(numValue)) {
+                                    handlePMSettingChange(machineKey, 'paper_temperature_before_pop_reel', undefined);
+                                  } else {
+                                    handlePMSettingChange(machineKey, 'paper_temperature_before_pop_reel', numValue);
+                                  }
+                                }
+                              }}
+                              className="form-input"
+                              placeholder="قبل از پوپ ریل"
+                              disabled={readOnly}
+                            />
+                            {(openNote?.machineId === machineKey && openNote?.fieldKey === 'paper_temperature_before_pop_reel') ? (
+                              !readOnly && <input type="text" className="form-input mt-1 text-sm" placeholder="یادداشت" value={getPmNoteValue(machineKey, 'paper_temperature_before_pop_reel')} onChange={(e) => handlePMSettingDetailChange(machineKey, 'paper_temperature_before_pop_reel', e.target.value)} />
+                            ) : getPmNoteDisplay(machineKey, 'paper_temperature_before_pop_reel') ? (
+                              <div className="mt-1 text-xs text-amber-800/90 bg-amber-50/70 rounded px-2 py-1 border border-amber-200" dir="rtl">{getPmNoteDisplay(machineKey, 'paper_temperature_before_pop_reel')}</div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Resistance Tests */}
+        <div className="card border-l-4 border-l-green-500 shadow-md hover:shadow-lg transition-shadow duration-200">
+          <div className="card-header bg-gradient-to-r from-green-50 to-transparent">
+            <div className="flex items-center gap-2">
+              <TestTube className="w-5 h-5 text-green-600" />
+              <h3 className="card-title text-green-900">تست‌های مقاومت</h3>
+            </div>
+          </div>
+          <div className="card-body bg-gray-50/50">
+            <div className="space-y-6">
+              {/* Burst Test */}
+              <div className="form-group">
+                <label className="form-label">burst</label>
+                <input
+                  type="text"
+                  value={formData.burst_test || ''}
+                  onChange={(e) => updateFormData('burst_test', e.target.value)}
+                  className="form-input"
+                  placeholder="نتیجه تست یا 'دستگاه خراب'"
+                />
+              </div>
+              
+              {/* Tensile Strength */}
+              <div className="field-grid-wide">
+                <div className="form-group">
+                  <label className="form-label">MD</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.tensile_strength_md === undefined || formData.tensile_strength_md === null ? '' : formData.tensile_strength_md}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        updateFormData('tensile_strength_md', undefined);
+                      } else {
+                        const numValue = parseFloat(value);
+                        if (isNaN(numValue)) {
+                          updateFormData('tensile_strength_md', undefined);
+                        } else {
+                          updateFormData('tensile_strength_md', numValue);
+                        }
+                      }
+                    }}
+                    className="form-input number-input"
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">CD</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.tensile_strength_cd === undefined || formData.tensile_strength_cd === null ? '' : formData.tensile_strength_cd}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        updateFormData('tensile_strength_cd', undefined);
+                      } else {
+                        const numValue = parseFloat(value);
+                        if (isNaN(numValue)) {
+                          updateFormData('tensile_strength_cd', undefined);
+                        } else {
+                          updateFormData('tensile_strength_cd', numValue);
+                        }
+                      }
+                    }}
+                    className="form-input number-input"
+                  />
+                </div>
+              </div>
+              
+              {/* CCT Tests */}
+              <div>
+                <label className="form-label">تست‌های CCT</label>
+                <div className="cct-rct-grid">
+                  {[1, 2, 3, 4, 5].map(num => (
+                    <div key={`cct${num}`} className="form-group">
+                      <label className="form-label text-xs">CCT {num}</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={(formData as any)[`cct${num}`] === undefined || (formData as any)[`cct${num}`] === null ? '' : (formData as any)[`cct${num}`]}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '') {
+                            updateFormData(`cct${num}` as keyof Paper, undefined);
+                          } else {
+                            const numValue = parseFloat(value);
+                            if (isNaN(numValue)) {
+                              updateFormData(`cct${num}` as keyof Paper, undefined);
+                            } else {
+                              updateFormData(`cct${num}` as keyof Paper, numValue);
+                            }
+                          }
+                        }}
+                        className="form-input number-input text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* RCT Tests */}
+              <div>
+                <label className="form-label">تست‌های RCT</label>
+                <div className="cct-rct-grid">
+                  {[1, 2, 3, 4, 5].map(num => (
+                    <div key={`rct${num}`} className="form-group">
+                      <label className="form-label text-xs">RCT {num}</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={(formData as any)[`rct${num}`] === undefined || (formData as any)[`rct${num}`] === null ? '' : (formData as any)[`rct${num}`]}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '') {
+                            updateFormData(`rct${num}` as keyof Paper, undefined);
+                          } else {
+                            const numValue = parseFloat(value);
+                            if (isNaN(numValue)) {
+                              updateFormData(`rct${num}` as keyof Paper, undefined);
+                            } else {
+                              updateFormData(`rct${num}` as keyof Paper, numValue);
+                            }
+                          }
+                        }}
+                        className="form-input number-input text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Production Details */}
+        <div className="card border-l-4 border-l-orange-500 shadow-md hover:shadow-lg transition-shadow duration-200">
+          <div className="card-header bg-gradient-to-r from-orange-50 to-transparent">
+            <div className="flex items-center gap-2">
+              <Settings className="w-5 h-5 text-orange-600" />
+              <h3 className="card-title text-orange-900">جزئیات تولید</h3>
+            </div>
+          </div>
+          <div className="card-body bg-gray-50/50">
+            <div className="field-grid">
+            <div className="form-group">
+                <label className="form-label">تعداد پارگی</label>
+                <input
+                  type="number"
+                  value={formData.NumberOfTears === undefined || formData.NumberOfTears === null ? '' : formData.NumberOfTears}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      updateFormData('NumberOfTears', undefined);
+                    } else {
+                      const numValue = parseInt(value);
+                      if (isNaN(numValue)) {
+                        updateFormData('NumberOfTears', undefined);
+                      } else {
+                        updateFormData('NumberOfTears', numValue);
+                      }
+                    }
+                  }}
+                  className="form-input number-input"
+                  placeholder="تعداد پارگی"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">زمان پارگی</label>
+                <input
+                  type="text"
+                  value={formData.tearing_time || ''}
+                  onChange={(e) => updateFormData('tearing_time', e.target.value)}
+                  className="form-input"
+                  placeholder="زمان پارگی"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">زمان وقفه در تولید ( دقیقه )</label>
+                <input
+                  type="text"
+                  value={formData.ProductionDowntime || ''}
+                  onChange={(e) => updateFormData('ProductionDowntime', e.target.value)}
+                  className="form-input"
+                  placeholder="دقیقه"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">علت پارگی/توقف</label>
+                <input
+                  type="text"
+                  value={formData.CauseOfTearing || ''}
+                  onChange={(e) => updateFormData('CauseOfTearing', e.target.value)}
+                  className="form-input"
+                  placeholder="علت پارگی/توقف"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label">کلندر اعمال شده</label>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="calender"
+                      checked={formData.calender_applied === true}
+                      onChange={() => updateFormData('calender_applied', true)}
+                      className="w-4 h-4 text-primary-600"
+                    />
+                    <span className="text-sm">بله</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="calender"
+                      checked={formData.calender_applied === false}
+                      onChange={() => updateFormData('calender_applied', false)}
+                      className="w-4 h-4 text-primary-600"
+                    />
+                    <span className="text-sm">خیر</span>
+                  </label>
+                </div>
+              </div>
+              
+              <AutoComplete
+                label="سرعت دستگاه"
+                value={formData.machine_speed === undefined || formData.machine_speed === null ? '' : formData.machine_speed.toString()}
+                onChange={(value) => updateFormData('machine_speed', value ? parseFloat(value) : undefined)}
+                suggestions={suggestions.machineSpeedSuggestions.map(s => s.toString())}
+                placeholder="متر در دقیقه"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Material Usage */}
+        <div className="card border-l-4 border-l-indigo-500 shadow-md hover:shadow-lg transition-shadow duration-200">
+          <div className="card-header bg-gradient-to-r from-indigo-50 to-transparent">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-indigo-600" />
+              <h3 className="card-title text-indigo-900">مصرف مواد</h3>
+            </div>
+          </div>
+          <div className="card-body bg-gray-50/50">
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">مواد استفاده شده و مقدار هر یک را انتخاب کنید:</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {materials.map(material => {
+                  const isSelected = selectedMaterials[material.id] !== undefined;
+                  const materialData = selectedMaterials[material.id] || { val: 1, brand: '', text: '' };
+                  
+                  return (
+                    <div
+                      key={material.id}
+                      className={`material-selector ${isSelected ? 'selected' : ''}`}
+                      onClick={() => handleMaterialToggle(material.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{material.material_name}</h4>
+                          {material.description && (
+                            <p className="text-sm text-gray-600 mt-1">{material.description}</p>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleMaterialToggle(material.id)}
+                            className="w-4 h-4 text-primary-600"
+                          />
+                        </div>
+                      </div>
+                      
+                      {isSelected && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                مقدار
+                              </label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={materialData.val === undefined || materialData.val === null ? '' : materialData.val}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value === '') {
+                                    handleMaterialAmountChange(material.id, undefined);
+                                  } else {
+                                    const numValue = parseFloat(value);
+                                    if (isNaN(numValue)) {
+                                      handleMaterialAmountChange(material.id, undefined);
+                                    } else {
+                                      handleMaterialAmountChange(material.id, numValue);
+                                    }
+                                  }
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="form-input w-full number-input"
+                                placeholder="مقدار"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                محلول در آب
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="3000"
+                                value={materialData.Soluble_in_water === undefined || materialData.Soluble_in_water === null ? '' : materialData.Soluble_in_water}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value === '') {
+                                    handleMaterialSolubleInWaterChange(material.id, undefined);
+                                  } else {
+                                    const numValue = parseInt(value);
+                                    if (isNaN(numValue)) {
+                                      handleMaterialSolubleInWaterChange(material.id, undefined);
+                                    } else {
+                                      if (numValue >= 1 && numValue <= 3000) {
+                                        handleMaterialSolubleInWaterChange(material.id, numValue);
+                                      }
+                                    }
+                                  }
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="form-input w-full number-input"
+                                placeholder="بین 1 تا 3000"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                برند
+                              </label>
+                              <input
+                                type="text"
+                                value={materialData.brand}
+                                onChange={(e) => handleMaterialBrandChange(material.id, e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="form-input w-full"
+                                placeholder="نام برند"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                توضیحات
+                              </label>
+                              <textarea
+                                value={materialData.text}
+                                onChange={(e) => handleMaterialDescriptionChange(material.id, e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="form-input w-full"
+                                placeholder="توضیحات اضافی"
+                                rows={1}
+                              />
+                            </div>
+                          </div>
+                          
+                          {/* Suggestions for this material */}
+                          <div className="mt-2 space-y-2">
+                            {/* Amount suggestions */}
+                            {suggestions.materialUsageSuggestions[material.id]?.amounts && suggestions.materialUsageSuggestions[material.id].amounts.length > 0 && (
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">مقادیر پیشنهادی:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {suggestions.materialUsageSuggestions[material.id].amounts.map(suggestedAmount => (
+                                    <button
+                                      key={suggestedAmount}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleMaterialAmountChange(material.id, suggestedAmount);
+                                      }}
+                                      className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                                    >
+                                      {suggestedAmount}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Brand suggestions */}
+                            {suggestions.materialUsageSuggestions[material.id]?.brands && suggestions.materialUsageSuggestions[material.id].brands.length > 0 && (
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">برندهای پیشنهادی:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {suggestions.materialUsageSuggestions[material.id].brands.map(suggestedBrand => (
+                                    <button
+                                      key={suggestedBrand}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleMaterialBrandChange(material.id, suggestedBrand);
+                                      }}
+                                      className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                                    >
+                                      {suggestedBrand}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {materials.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <p>هیچ ماده‌ای در سیستم ثبت نشده است.</p>
+                  <p className="text-sm">ابتدا از بخش "مواد" مواد مورد نیاز را اضافه کنید.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+
+
+        {/* Submit Actions */}
+        {!readOnly && (
+          <div className="flex justify-end pt-6 border-t-2 border-gray-300 bg-white rounded-lg p-4 shadow-sm">
+            <div className="flex gap-3">
+              <button type="button" onClick={onCancel} className="px-5 py-2.5 bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 rounded-lg inline-flex items-center transition-all duration-200 shadow-sm hover:shadow">
+                انصراف
+              </button>
+              {isEditing && paperPerms.delete && (
+                <button 
+                  type="button" 
+                  onClick={handleDeleteClick}
+                  className="px-5 py-2.5 bg-red-500 text-white font-medium hover:bg-red-600 rounded-lg inline-flex items-center transition-all duration-200 shadow-sm hover:shadow"
+                >
+                  <Trash2 className="w-4 h-4 ml-2" />
+                  حذف رکورد
+                </button>
+              )}
+              {((isEditing && paperPerms.change) || (!isEditing && paperPerms.add)) && (
+                <button type="submit" className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium hover:from-blue-700 hover:to-blue-800 rounded-lg inline-flex items-center transition-all duration-200 shadow-md hover:shadow-lg">
+                  <Save className="w-4 h-4 ml-2" />
+                  {isEditing ? 'ذخیره تغییرات' : 'ایجاد رکورد'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </form>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={deleteDialog}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="حذف رکورد کاغذ"
+        message={`آیا از حذف رکورد کاغذ شماره ${paper?.roll_number} اطمینان دارید؟ این عمل قابل بازگشت نیست.`}
+        confirmText="حذف"
+        cancelText="انصراف"
+        type="danger"
+        loading={deleteLoading}
+      />
+
+      {/* Roll Number Warning Dialog */}
+      <ConfirmationDialog
+        isOpen={rollNumberWarningDialog.isOpen}
+        onClose={() => setRollNumberWarningDialog({ isOpen: false, enteredValue: '', suggestedValue: '' })}
+        onConfirm={() => {
+          updateFormData('roll_number', rollNumberWarningDialog.suggestedValue);
+          setRollNumberWarningDialog({ isOpen: false, enteredValue: '', suggestedValue: '' });
+        }}
+        title="هشدار شماره رول"
+        message={`شماره رول وارد شده (${rollNumberWarningDialog.enteredValue}) با آخرین شماره رول (${lastRollNumber}) همخوانی ندارد. آیا می‌خواهید از شماره پیشنهادی (${rollNumberWarningDialog.suggestedValue}) استفاده کنید؟`}
+        confirmText="استفاده از پیشنهاد"
+        cancelText="ادامه با شماره فعلی"
+        type="warning"
+        loading={false}
+      />
+    </div>
+  );
+};

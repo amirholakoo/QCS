@@ -1,0 +1,425 @@
+<section class="section_page" id="paper_dashboard">
+    <div class="d-flex py-3 w-100 justify-content-between align-items-center">
+        <h4>
+            مدیریت کاغذ <span style="font-size: 15px;">( مجموع کاغذ ها: 508,350)</span>
+        </h4>
+        <div class="d-flex">
+            <div class="d-flex">
+                <div class="export_excel_btn">
+                    <div class="btn btn-secondary d-flex align-items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download w-5 h-5 ml-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg>
+                        <span class="mr-2">خروجی اکسل</span>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex mr-2">
+                <div class="export_excel_btn">
+                    <div class="btn btn-primary d-flex align-items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download w-5 h-5 ml-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg>
+                        <span class="mr-2">افزودن مشخصات کاغذ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <form action="" method="post" class="w-100">
+        {% csrf_token %}
+        <div class="search_card">
+            <div class="search_by_text group_icon_input">
+                <input type="text" name="paper_text_search" id="" placeholder="جستجو در شماره رول... ( برای مثال: 20500287 )">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+            </div>
+            <div class="filter_by">
+                <select name="paper_pm_filter" id="">
+                    <option>همه خطوط تولید</option>
+                    <option value="PM2">PM2</option>
+                    <option value="PM3">PM3</option>
+                    <option value="PM4">PM4</option>
+                </select>
+            </div>
+            <div class="filter_by">
+                <select name="paper_pm_filter" id="">
+                    <option>جدیدترین</option>
+                    <option value="PM2">قدیمی ترین</option>
+                    <option value="PM3">به ترتیب شماره رول</option>
+                </select>
+            </div>
+            <div class="filter_by">
+                <select name="paper_pm_filter" id="">
+                    <option>نوع کاغذ</option>
+                    <option value="PM2">لاینر 180 LH</option>
+                    <option value="PM3">تست لاینر سفید 130</option>
+                    <option value="">تست لاینر 125 TLH</option>
+                </select>
+            </div>
+            <div class="sort_list_by d-none">
+                <div class="sort_item">
+                    <input type="radio" name="paper_sort_by" id="paper_sort_by_date">
+                    <label for="paper_sort_by_date">بر اساس تاریخ</label>
+                </div>
+                <div class="sort_item">
+                    <input type="radio" name="paper_sort_by" id="paper_sort_by_roll_number">
+                    <label for="paper_sort_by_roll_number">بر اساس شماره رول</label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary group_icon_input">جستجو</button>
+        </div>
+    </form>
+    <table class="styled-table">
+        <thead>
+            <tr>
+                <th>ردیف</th>
+                <th>عملیات</th>
+                <th>شماره رول</th>
+                <th>خط تولید</th>
+                <th>تاریخ - زمان</th>
+                <th>شیفت</th>
+                <th>نوع کاغذ</th>
+                <th>عرض کاغذ</th>
+                <th>گرماژ</th>
+                <th>رطوبت</th>
+                <th>خاکستر</th>
+                <th>کاب</th>
+                <th>پروفایل</th>
+                <th>جزئیات پروفایل</th>
+                <th>BURST</th>
+                <th>MD</th>
+                <th>CD</th>
+                <th>CCT</th>
+                <th>RCT</th>
+                <th>پارگی</th>
+                <th>کالندر</th>
+                <th>سرعت</th>
+                <th>رقیق ساز ( 1 - 5 )</th>
+                <th>غلظت ( 1 - 5 )</th>
+                <th>مواد</th>
+                <th>تنظیمات ماشین</th>
+                <th>PLC DATA</th>
+                <th>PLC DATA</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+            </tr><tr>
+                <td>1</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+            </tr><tr>
+                <td>1</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+            </tr><tr>
+                <td>1</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+            </tr><tr>
+                <td>1</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+            </tr><tr>
+                <td>1</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+            </tr><tr>
+                <td>1</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+            </tr><tr>
+                <td>1</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+            </tr><tr>
+                <td>1</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+            </tr><tr>
+                <td>1</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>10</td>
+                <td>12</td>
+                <td>110</td>
+                <td>58</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+                <td>91</td>
+                <td>57</td>
+                <td>11</td>
+                <td>52</td>
+            </tr>
+        </tbody>
+    </table>
+</section>

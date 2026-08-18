@@ -1,0 +1,151 @@
+section.login {
+    margin-top: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+section.login .login_header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+section.login .login_header .icon {
+    background-color: var(--main-color);
+    padding: 10px;
+    border-radius: var(--radius);
+}
+
+section.login .login_header h5 {
+    font-weight: 900;
+    word-spacing: 4px;
+}
+section.login .login_card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    margin: 20px 0;
+    overflow: hidden;
+    min-width: 40vw;
+    background: #fff;
+}
+
+section.login .login_card .login_card_header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-bottom: 1px solid var(--main-color);
+    background-color: var(--light-main-color);
+}
+section.login .login_card .login_card_header p {
+    font-size: var(--font-sm);
+    font-weight: 400;
+}
+section.login .login_card .login_card_header p b {
+    font-size: var(--font-xs);
+}
+section.login .login_card .login_card_header svg {
+    stroke: var(--main-color);
+}
+section.login .login_card .login_body {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 10px;
+}
+
+section.login .login_card .login_body .user_card .username {
+    text-align: right;
+}
+section.login .login_card .login_body .user_card .username p {
+    font-size: var(--font-md);
+}
+section.login .login_card .login_body .user_card .username span {
+    color: var(--light-color);
+    font-size: var(--font-sm);
+}
+
+section.login .login_card .user_card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 10px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+}
+section.login .login_card .login_body .user_card:hover {
+    border-color: var(--main-color);
+}
+section.login .login_card .login_body .user_card:hover svg {
+    stroke: var(--main-color)
+}
+section.login .login_card .login_body .user_card:hover .username span {
+    color: var(--light-color) !important;
+}
+section.login a {
+    color: var(--main-color);
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+section.login > div > a:hover {
+    filter: contrast(4);
+}
+
+/* ============= register =================== */
+
+.form_section {
+    width: 100%;
+    /* display: grid;
+    grid-template-columns: repeat(2, 1fr); */
+}
+
+.form_group {
+    position: relative;
+}
+
+.form_group input {
+    padding: 14px;
+    border: 1px solid #d3d3d3;
+    border-radius: var(--radius);
+    height: 50px;
+    color: #000;
+    font-size: 0.9rem;
+    width: 100%;
+}
+.form_group input:focus, .form_group textarea:focus, .form_group select:focus, .form_group input:not(:placeholder-shown) , .form_group textarea:not(:placeholder-shown) {
+    outline: none;
+    box-shadow: none;
+    border-color: var(--main-color);
+}
+ .form_group input:focus ~ label,  .form_group textarea:focus ~ label,  .form_group select:focus ~ label,  .form_group input:not(:placeholder-shown) ~ label {
+    font-size: 0.8rem;
+    top: -10px;
+    color: var(--main-color);
+    width: auto;
+}
+
+.form_group label {
+    font-size: 1rem;
+    position: absolute;
+    background-color: #fff;
+    padding: 3px 10px;
+    top: 7px;
+    right: 10px;
+    transition: all 0.2s;
+    width: calc(100% - 35px);
+    text-align: right;
+}
+
+button {
+    width: 100%;
+    background-color: var(--main-color);
+    border-radius: var(--radius);
+    padding: 10px;
+    color: #fff;
+}
