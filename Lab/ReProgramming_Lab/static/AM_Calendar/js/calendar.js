@@ -1,4 +1,24 @@
 /* all right reserved | copyright 2025 | amirmohammad mousavi */
+let calendar_active_val = false;
+let last_date_input = null;
+
+for(const x of document.querySelectorAll('[data-type="date"]')) {
+  x.onclick = ()=> {
+    AM_POPUP();
+    last_date_input=x;
+  }
+}
+
+for (const x of document.querySelectorAll('#calendar .calendar_month label')) {
+  x.onclick = function() {
+    calendar_active_val = !x.classList.contains('disable') ? x.getAttribute('date-data') : false;
+    if (last_date_input) {
+      last_date_input.value=calendar_active_val;
+      console.log("===========");
+      AM_POPUP(false);
+    }
+  }
+}
 let Calendar_Data_Fix = false;
 function AMCalendar(year=false,month=false,data_title=false,form=false) {
     Calendar_Data_Fix = false;

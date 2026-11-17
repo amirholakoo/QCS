@@ -6,10 +6,10 @@
 /* ========== page contents section start ========== */
 .page_content {
     position: fixed;
-    top: 104px;
+    top: 92px;
     right: 0;
     width: 100%;
-    height: 100vh;
+    height: calc(100vh - 104px);
     overflow: auto;
     display: flex;
     flex-direction: column;
@@ -19,26 +19,39 @@
 .page_content .section_page {
     position: absolute;
     padding: 20px;
-    right: -100%;
+    right: 0;
     top: 0;
+    transform: scale(1);
     height: 100%;
     width: 100%;
-    opacity: 0;
     pointer-events: none;
-    visibility: hidden;
+    display: none;
     z-index: -1;
-    transition: all 0.3s;
     overflow-y: auto;
+    background-color: #f8f8f8;
 }
 .page_content .section_page.active {
-    right: 0;
-    opacity: 1;
+    display: block;
     pointer-events: visible;
-    visibility: visible;
     z-index: +999;
+}
+.page_content .section_page::-webkit-scrollbar {
+    width: 0.4em;
+    height: 0.4em;
+}
+
+.page_content .section_page::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 6px rgba(192, 192, 192, 0.3);
+}
+
+.page_content .section_page::-webkit-scrollbar-thumb {
+    background-color: #c2c2c2;
+    border-radius: 10px;
 }
 /* ========== page contents section end ========== */
 
+
+/* ========== header start ========== */
 header {
     background-color: #fff;
     padding: 24px 24px;
@@ -113,10 +126,9 @@ header .left_tools .item:hover {
     background: var(--light-main-color);
     color: #000;
 }
+/* ========== header end ========== */
 
-
-/* =============== search ================= */
-
+/* =============== search start================= */
 .search_card {
     background-color: #fff;
     border-radius: var(--radius);
@@ -176,3 +188,453 @@ header .left_tools .item:hover {
     height: 52px;
     border-radius: 12px;
 }
+/* =============== search end ================= */
+
+/* =============== record list view start ================ */
+.record_list {
+    width: 100%;
+    height: calc(100vh - 380px);
+    border-radius: var(--radius);
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid var(--light-color);
+}
+.record_list::-webkit-scrollbar {
+    width: 0.8em;
+    height: 0.8em;
+}
+
+.record_list::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 6px rgba(192, 192, 192, 0.3);
+}
+
+.record_list::-webkit-scrollbar-thumb {
+    background-color: var(--light-color);
+    border-radius: 10px;
+}
+.record_list table {
+    overflow: auto;
+    margin: 0 !important;
+}
+.record_list table {
+    border-collapse: collapse;
+    margin: 25px 0;
+    font-size: var(--font-sm);
+    width: 100%;
+    text-align: center;
+}
+.record_list table thead{
+    position: sticky;
+    top: 1px;
+    z-index: 100;
+    box-shadow: inset 0 -2px 0 var(--light-color);
+}
+.record_list table thead tr {
+    background-color: rgba(240, 240, 240, 0.5) !important;
+    backdrop-filter: blur(8.5px);
+    border-bottom: 1px solid var(--light-color);
+}
+.record_list table thead tr th {
+    box-shadow: inset 0 -1px 0 var(--light-color);
+}
+.record_list tbody tr td {
+    background: none !important;
+    white-space: nowrap;
+    vertical-align: top;
+}
+.record_list tbody tr:nth-child(even) {
+    background: #fefefe !important;
+}
+.yes {
+    background-color: var(--green);
+}
+.no {
+    background-color: var(--red);
+    color: #fff;
+}
+.yes,.no {
+    font-size: var(--font-xs);
+    padding: 6px;
+    border-radius: 6px;
+}
+.new-row {
+    animation: newRow 0.6s ease !important;
+}
+
+@keyframes newRow {
+    from {
+        opacity: 0;
+        background-color: var(--green) !important;
+        transform: translateY(-15px);
+    }
+
+    to {
+        opacity: 1;
+        background-color: #000 !important;
+        transform: translateY(0);
+    }
+}
+/* =============== record list view end ================ */
+
+.page_title {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.page_title .title {
+    display: flex;
+    text-align: justify;
+    gap: 10px;
+}
+.page_title .title h5 {
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+.page_title .title p {
+    font-weight: 400;
+    color: var(--light-color);
+}
+.page_title .title .icon{
+    background-color: var(--main-color);
+    padding: 10px;
+    border-radius: var(--radius);
+    width: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+.page_title .back_btn {
+    display: flex;
+    gap: 6px;
+}
+
+
+
+/* =========  flow sections title start ( use in pape form first time ) ========== */
+.flow_sections_title {
+    counter-reset: section;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 20px 10px 20px;
+    margin: 10px 0;
+    margin-bottom: 0;
+    gap: 10px;
+    background-color: #fff;
+    box-shadow: 0px 0px 50px 0px rgba(0, 0, 0, 0.07);
+    border-radius: 16px;
+    /* flex-wrap: wrap; */
+    border-bottom: 2px dashed var(--light-color);
+}
+.flow_sections_title > div {
+    counter-increment: section;
+    font-size: var(--font-sm);
+    flex: 1 1 auto;
+    margin: 6px 0;
+    text-align: center;
+    background-color: var(--light-main-color);
+    padding: 12px 33px;
+    border-radius: var(--radius);
+    color: #000;
+    font-weight: 700;
+    border: 2px solid var(--light-main-color);
+    cursor: pointer;
+    position: relative;
+    background: linear-gradient(
+        to left,
+        var(--green) 0%,
+        var(--green) var(--percentage),
+        var(--light-main-color) var(--percentage),
+        var(--light-main-color) 100%
+    );
+    opacity: 0.7;
+}
+.flow_sections_title > div::before {
+    content: counter(section);
+    transition: all 0.3s;
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    border-radius: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid #ffffff;
+    transform: translateX(-50%);
+    background-color: #eff4ff;
+    font-size: var(--font-xs);
+    font-weight: 700;
+    background:
+        conic-gradient(
+            var(--green) var(--percentage),
+            var(--light-main-color) var(--percentage)
+        );
+
+    font-size: var(--font-xs);
+    font-weight: 700;
+}
+.flow_sections_title > div > hr {
+    opacity: 0;
+    position: absolute;
+    bottom: -36px;
+    left: 0;
+    background-color: var(--main-color);
+    background: linear-gradient(to right, transparent, var(--main-color), transparent);
+    width: 100%;
+    height: 2px;
+    z-index: +999;
+    pointer-events: none;
+}
+.flow_sections_title > div::after {
+    content: attr(percentage);
+    position: absolute;
+    font-size: var(--font-xs);
+    bottom: 5px;
+    right: 5px;
+    border-radius: 50%;
+}
+.flow_sections_title > div:hover {
+    filter: contrast(0.9);
+    border-color: var(--main-color);
+    opacity: 1;
+}
+.flow_sections_title > div:hover::before {
+    border-color: var(--main-color);
+    transition: all 0.3s;
+}
+.flow_sections_title > div.active {
+    border-color: var(--main-color);
+    opacity: 1;
+}
+.flow_sections_title > div.active::before {
+    border-color: var(--main-color);
+}
+.flow_sections_title > div.active hr {
+    display: block;
+    opacity: 1;
+}
+/* =========  flow sections title end */
+
+/* ========= form start ======== */
+.form {
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 1);
+    position: relative;
+    margin-top: 20px;
+    height: calc(100% - 205px);
+}
+.form_section {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    height: 100%;
+    top: 0;
+    right: 0;
+    text-align: justify;
+    width: 100%;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+}
+.form_section.active {
+    opacity: 1;
+    pointer-events: visible;
+    visibility: visible;
+    height: 100%;
+}
+.form_section .form_header {
+    width: 100%;
+    text-align: center;
+    margin: 20px 0;
+}
+.form_section .form_header .title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--main-color);
+}
+.form_section .form_header .title h6 {
+    font-size: var(--font-xl);
+    font-weight: 700;
+    color: var(--main-color);
+}
+.form_section {
+    width: 100%;
+    /* display: grid;
+    grid-template-columns: repeat(2, 1fr); */
+}
+.form_section .form_body {
+    display: grid;
+    align-items: flex-start;
+    grid-auto-rows: max-content;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    padding: 20px;
+    height: 76%;
+    max-height: 76%;
+    overflow: auto;
+    position: relative;
+}
+.form_section .form_body::after {
+    content: '';
+    position: sticky;
+    grid-column: 1 / -1;
+    box-sizing: border-box;
+    background-image: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.56));
+    height: 75px;
+    bottom: -27px;
+    pointer-events: none;
+}
+.form_section .form_body::-webkit-scrollbar {
+    width: 0.4em;
+    height: 0.2em;
+}
+
+.form_section .form_body::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 6px rgba(192, 192, 192, 0.3);
+}
+
+.form_section .form_body::-webkit-scrollbar-thumb {
+    background-color: #c2c2c2;
+    border-radius: 10px;
+}
+.form_group {
+    position: relative;
+}
+
+.form_group input,.form_group select, .form_group textarea{
+    padding:  14px 14px 14px 25px;
+    border: 1px solid #d3d3d3;
+    border-radius: var(--radius);
+    height: 50px;
+    color: #000;
+    font-size: 0.9rem;
+    width: 100%;
+}
+.form_group textarea {
+    height: auto;
+}
+.form_group input::placeholder,.form_group select::placeholder, .form_group textarea::placeholder {
+    color: var(--light-color);
+}
+.form_group.check-box input{
+    width: 20px;
+    height: 20px;
+}
+.form_group.check-box label{
+    top: 0px !important;
+    padding: 0;
+    margin: 0;
+    right: 35px;
+}
+.form_group input:focus,.form_group select, .form_group textarea:focus, .form_group select:focus, .form_group input:not(:placeholder-shown) , .form_group textarea:not(:placeholder-shown) {
+    outline: none;
+    box-shadow: none;
+    border-color: var(--main-color);
+}
+ .form_group input:focus ~ label,  .form_group textarea:focus ~ label,  .form_group select ~ label,  .form_group input:not(:placeholder-shown) ~ label, .form_group textarea:not(:placeholder-shown) ~ label {
+    font-size: 0.8rem;
+    top: -10px;
+    color: var(--main-color);
+    width: auto;
+}
+
+.form_group label {
+    font-size: 1rem;
+    position: absolute;
+    background-color: #fff;
+    padding: 3px 10px;
+    top: 7px;
+    right: 10px;
+    transition: all 0.2s;
+    width: calc(100% - 35px);
+    text-align: right;
+    pointer-events: none;
+}
+
+.form_section button {
+    width: 100%;
+    background-color: var(--main-color);
+    border-radius: var(--radius);
+    padding: 10px;
+    color: #fff;
+}
+.form_multi_group {
+    padding: 18px;
+    border: 1px solid var(--light-color);
+    border-radius: var(--radius);
+    /* background: var(--light-main-color); */
+}
+.form_multi_group .header {
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--light-color);
+}
+.form_multi_group .body{
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+.next_btn {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+#paper_section_3 label {
+    font-size: var(--font-xs);
+}
+/* ========= form end ========= */
+
+
+/* ========= setting start ========== */
+.setting_nav {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: 1px;
+    display: flex;
+    justify-content: center;
+    margin:  0;
+    z-index: +999;
+}
+.setting_nav .setting_box {
+    display: flex;
+    gap: 16px;
+    height: 72px;
+    align-items: center;
+    width: max-content;
+    justify-content: center;
+    padding: 14px;
+    border-top: 1px solid #eee;
+    border-radius: 0 0px 20px 20px;
+    background-color: #fff;
+    margin-top: -20px;
+}
+.setting_nav a {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    gap: 10px;
+    padding: 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--light-main-color);
+    flex-wrap: nowrap;
+}
+.setting_nav a p {
+    white-space: nowrap;
+}
+.setting_nav a.active, .setting_nav a:hover {
+    border-color: var(--main-color) !important;
+}
+/* ========= setting end ========== */
+
+
+/* ========= Table  start =========== */
+
+/* ========= Table  end =========== */

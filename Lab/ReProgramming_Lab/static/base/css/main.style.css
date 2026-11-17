@@ -1,8 +1,7 @@
 html {
     scroll-behavior: smooth;
     transition: all 0.5s;
-    scrollbar-color: #777777 #fff;
-    scrollbar-width: thin;
+    
 }
 
 body {
@@ -99,13 +98,6 @@ select::-webkit-scrollbar-thumb {
 select {
     scrollbar-color: #202020 #fff;
     scrollbar-width: thin;
-}
-
-.form {
-    border-radius: 10px;
-    background-color: rgba(255, 255, 255, 1);
-    box-shadow: 0px 0px 50px 0px rgba(0, 0, 0, 0.07);
-    padding: 20px;
 }
 
 input:focus-visible,
@@ -465,7 +457,15 @@ p {
     padding: 15px 20px;
     transition: all 0.3s;
 }
-
+.btn svg {
+    width: 18px;
+}
+.btn-primary {
+    color: #fff !important;
+}
+.btn-success {
+    color: #fff !important;
+}
 .uploader {
     display: inline-block;
     position: relative;
@@ -617,15 +617,16 @@ table td, table th {
     padding: 18px 8px;
     text-align: center;
     border: 1px solid #e7e7e7;
+    white-space: nowrap;
+}
+table td {
+    background: #fff;
 }
 table tbody tr {
     border-bottom: 1px solid #dddddd;
 }
 table tbody tr:nth-of-type(even) {
     background-color: #f3f3f3;
-}
-table tbody tr:last-of-type {
-    border-bottom: 2px solid var(--main-color);
 }
 table tbody tr:hover {
     color: var(--main-color);
@@ -636,6 +637,17 @@ input[type='search'] {
     outline: none;
     box-shadow: none;
     background: none;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active{
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+}
+
+*::after, *::before {
+    pointer-events: none;
 }
 
 .font-bold {
@@ -763,9 +775,10 @@ input[type='search'] {
     border-image: linear-gradient( to left, #0dccff, #0dbaff) 1;
 }
 
-.not-found img {
-    filter: grayscale(0.2);
-    width: 40%;
+img.not-found {
+    filter: grayscale(0.5);
+    width: 100%;
+    border-radius: 16px;
 }
 
 /* _____ Help _____ */
@@ -807,7 +820,7 @@ input[type='search'] {
 .Help .help_card:hover , .Help .help_card:focus {
     right: 0;
 }
-/* progress bar */
+/* ============ progress bar start =========== */
 
 .progressbar {
     transition: all 0.3s;
@@ -827,14 +840,78 @@ input[type='search'] {
     display: block;
     height: auto;
 }
-
-.progressbar .progress .loader {
+.loader {
+    display: block;
     border: 3px solid #e8e8e8;
-    border-top: 3px solid #aaaaaa;
+    border-top: 3px solid var(--main-color);
     border-radius: 50%;
     width: 30px;
     height: 30px;
     animation: spiner 0.5s linear infinite;
+}
+/* ========= progres bar end ======== */
+
+/* ========== PopUp start ========== */
+.AM_POPUP {
+position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+}
+.AM_POPUP.active {
+    opacity: 1;
+    pointer-events: visible;
+    visibility: visible;
+}
+.AM_POPUP.active .popup_object {
+    transform: scale(1);
+}
+.AM_POPUP .popup_object {
+    height: fit-content;
+    padding: 16px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0px 0px 50px 0px rgba(0, 0, 0, 0.07);
+    transform: scale(0);
+}
+.AM_POPUP .popup_object .popup_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+}
+
+.AM_POPUP .popup_object .popup_header .close_btn {
+    font-size: 28px;
+    color: var(--light-color);
+    cursor: pointer;
+    border: 1px solid var(--light-color);
+    border-radius: 10px;
+    width: 44px;
+    display: flex;
+    justify-content: center;
+}
+.AM_POPUP .popup_object .popup_header .close_btn:hover {
+    background-color: #f1f1f1;
+}
+/* ========== PopUp end ========== */
+
+
+.help_text {
+    font-size: var(--font-xs);
+    color: #555555;
+    margin: 10px 0;
 }
 
 

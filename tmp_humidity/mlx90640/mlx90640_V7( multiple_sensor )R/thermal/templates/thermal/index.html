@@ -1,0 +1,4379 @@
+{% load static %}
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>دما و رطوبت PM3_250</title>
+    <!--<title>دما و رطوبت PM2_150</title>-->
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <script src="{% static 'base/js/jquery.min.js' %}"></script>
+    <script src="{% static 'base/js/apexcharts.js' %}"></script>
+    <style>
+        @font-face {
+            font-family: iranyekan;
+            font-style: normal;
+            font-weight: bold;
+            src: url("{% static 'base/fonts/eot/iranyekanwebbold.eot' %}");
+            src: url("{% static 'base/fonts/eot/iranyekanwebbold.eot?#iefix' %}") format('embedded-opentype'),  /* IE6-8 */
+                url("{% static 'base/fonts/woff2/iranyekanwebbold.woff2' %}") format('woff2'),  /* FF39+,Chrome36+, Opera24+*/
+                url("{% static 'base/fonts/woff/iranyekanwebbold.woff' %}") format('woff'),  /* FF3.6+, IE9, Chrome6+, Saf5.1+*/
+                url("{% static 'base/fonts/ttf/iranyekanwebbold.ttf' %}") format('truetype');
+        }
+
+        @font-face {
+            font-family: iranyekan;
+            font-style: normal;
+            font-weight: 300;
+            src: url("{% static 'base/fonts/eot/iranyekanweblight.eot' %}");
+            src: url("{% static 'base/fonts/eot/iranyekanweblight.eot?#iefix' %}") format('embedded-opentype'),  /* IE6-8 */
+                url("{% static 'base/fonts/woff2/iranyekanweblight.woff2' %}") format('woff2'),  /* FF39+,Chrome36+, Opera24+*/
+                url("{% static 'base/fonts/woff/iranyekanweblight.woff' %}") format('woff'),  /* FF3.6+, IE9, Chrome6+, Saf5.1+*/
+                url("{% static 'base/fonts/ttf/iranyekanweblight.ttf' %}") format('truetype');
+        }
+
+        @font-face {
+            font-family: iranyekan;
+            font-style: normal;
+            font-weight: normal;
+            src: url("{% static 'base/fonts/eot/iranyekanwebregular.eot' %}");
+            src: url("{% static 'base/fonts/eot/iranyekanwebregular.eot?#iefix' %}") format('embedded-opentype'),  /* IE6-8 */
+                url("{% static 'base/fonts/woff2/iranyekanwebregular.woff2' %}") format('woff2'),  /* FF39+,Chrome36+, Opera24+*/
+                url("{% static 'base/fonts/woff/iranyekanwebregular.woff' %}") format('woff'),  /* FF3.6+, IE9, Chrome6+, Saf5.1+*/
+                url("{% static 'base/fonts/ttf/iranyekanwebregular.ttf' %}") format('truetype');
+        }
+
+        /* Latin fonts (Roboto) */
+
+        @font-face {
+            font-family: roboto;
+            font-style: normal;
+            font-weight: bold;
+            src: url("{% static 'base/fonts/eot/robotobold.eot' %}");
+            src: url("{% static 'base/fonts/eot/robotobold.eot?#iefix' %}") format('embedded-opentype'),  /* IE6-8 */
+                url("{% static 'base/fonts/woff2/robotobold.woff2' %}") format('woff2'),  /* FF39+,Chrome36+, Opera24+*/
+                url("{% static 'base/fonts/woff/robotobold.woff' %}") format('woff'),  /* FF3.6+, IE9, Chrome6+, Saf5.1+*/
+                url("{% static 'base/fonts/ttf/robotobold.ttf' %}") format('truetype');
+        }
+
+        @font-face {
+            font-family: roboto;
+            font-style: normal;
+            font-weight: 300;
+            src: url("{% static 'base/fonts/eot/robotolight.eot' %}");
+            src: url("{% static 'base/fonts/eot/robotolight.eot?#iefix' %}") format('embedded-opentype'),  /* IE6-8 */
+                url("{% static 'base/fonts/woff2/robotolight.woff2' %}") format('woff2'),  /* FF39+,Chrome36+, Opera24+*/
+                url("{% static 'base/fonts/woff/robotolight.woff' %}") format('woff'),  /* FF3.6+, IE9, Chrome6+, Saf5.1+*/
+                url("{% static 'base/fonts/ttf/robotolight.ttf' %}") format('truetype');
+        }
+
+        @font-face {
+            font-family: roboto;
+            font-style: normal;
+            font-weight: normal;
+            src: url("{% static 'base/fonts/eot/robotoregular.eot' %}");
+            src: url("{% static 'base/fonts/eot/robotoregular.eot?#iefix' %}") format('embedded-opentype'),  /* IE6-8 */
+                url("{% static 'base/fonts/woff2/robotoregular.woff2' %}") format('woff2'),  /* FF39+,Chrome36+, Opera24+*/
+                url("{% static 'base/fonts/woff/robotoregular.woff' %}") format('woff'),  /* FF3.6+, IE9, Chrome6+, Saf5.1+*/
+                url("{% static 'base/fonts/ttf/robotoregular.ttf' %}") format('truetype');
+        }
+        :root { --bg:#0f1115; --muted:#2a2f3a; --text:#e7eaee; --sub:#a6adbb; --accent:#4f8cff; --card:#151924; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            direction: rtl;
+            background: var(--bg);
+            color: var(--text);
+        }
+        * { font-family: iranyekan,roboto ,Arial !important; }
+        input:focus, input{ outline: none;box-shadow: none;border: 0; }
+        .app { display: flex; flex-direction: column; min-height: 100vh; }
+        
+        /* Multi-Sensor Dashboard Styles */
+        .view-mode-toggle {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--card);
+            border-bottom: 1px solid var(--muted);
+        }
+        .view-mode-btn {
+            flex: 1;
+            padding: 8px 16px;
+            border: 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .view-mode-btn.active {
+            background: var(--accent);
+            color: #fff;
+        }
+        .view-mode-btn:not(.active) {
+            background: var(--muted);
+            color: var(--text);
+        }
+        .multi-sensor-container {
+            display: flex;
+            flex-direction: column;
+            /* display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); */
+            gap: 20px;
+            padding: 20px;
+        }
+        .sensor-card {
+            background: var(--card);
+            border: 1px solid var(--muted);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+        .sensor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--muted);
+        }
+        .sensor-header h4 {
+            margin: 0;
+            color: var(--text);
+            font-size: 18px;
+        }
+        .connection-status {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .connection-status.connected {
+            color: #10b981;
+        }
+        .connection-status.disconnected {
+            color: #ef4444;
+        }
+        .sensor-image-container {
+            width: 100%;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--bg);
+        }
+        .sensor-image-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .sensor-data {
+            display: flex;
+            /* flex-direction: column; */
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: var(--bg);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .data-row span:first-child {
+            color: var(--sub);
+            margin-left: 10px;
+        }
+        .data-row span:last-child {
+            color: var(--text);
+            font-weight: 600;
+        }
+        .sensor-chart {
+            height: 200px;
+            margin-top: 12px;
+        }
+        .toolbar {
+            display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+            padding: 12px 16px; background: var(--card); border-bottom: 1px solid var(--muted);
+        }
+        .toolbar .left, .toolbar .right { display: flex; gap: 10px; align-items: center; }
+        .toolbar h3 { margin: 0 0 0 8px; font-weight: 600; font-size: 16px; color: var(--text); }
+        .toggle { display: none; gap: 6px; align-items: center; background: #10131a; border: 1px solid var(--muted); border-radius: 8px; padding: 6px 10px; color: var(--sub); cursor: pointer; }
+        .toolbar button { background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+        .toolbar button.secondary { background: transparent; border: 1px solid var(--muted); color: var(--text); }
+
+        .content { 
+            padding: 16px;
+            display: flex;
+        }
+        @media (max-width: 1100px) { 
+            .content {
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        .panel { 
+            background: var(--card);
+            border: 1px solid var(--muted);
+            border-radius: 10px;
+            padding: 0px;
+            width: 100%;
+        }
+        .panel.image-panel, .panel {
+            position: relative;
+        }
+        .hidden { display: none !important; }
+
+        #temperature-grid {
+            display: none;
+            grid-template-columns: repeat({{ thermal_cols }}, {{ thermal_cell_size }}px);
+            grid-template-rows: repeat({{ thermal_rows }}, {{ thermal_cell_size }}px);
+            gap: 2px;
+        }
+
+        .cell {
+            font-size: 10px;
+            text-align: center;
+            color: #afafaf;
+            border: 1px solid #dedede;
+            width: 15px;
+            height: 15px;
+            line-height: 13px;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        #info-box, #humidity-box {
+            font-size: 14px;
+            background: #111623;
+            padding: 6px 8px;
+            border: 1px solid var(--muted);
+            width: fit-content;
+            border-radius: 8px;
+            white-space: nowrap;
+        }
+        
+        #probes-container.alarm-mode .probe-card {
+            background: rgba(255, 68, 68, 0.1) !important;
+            border-color: #ff6666 !important;
+            color: #ffffff !important;
+            font-weight: bold;
+        }
+        #probes-container.alarm-mode .probe-card .probe-humidity {
+            color: #ff6666 !important;
+        }
+        
+        @keyframes alarm-blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.7; }
+        }
+        
+        .status-bar {
+            background: linear-gradient(135deg, var(--card) 0%, #1a1f2e 100%);
+            border: 1px solid var(--muted);
+            border-radius: 8px;
+            padding: 8px 16px;
+            margin: 0 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 200px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4ade80;
+            box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+            animation: pulse-green 2s infinite;
+        }
+        
+        .status-indicator.warning {
+            background: #fbbf24;
+            box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+            animation: pulse-yellow 2s infinite;
+        }
+        
+        .status-indicator.alarm {
+            background: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+            animation: pulse-red 1s infinite;
+        }
+        
+        .status-text {
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 500;
+            flex: 1;
+        }
+        
+        .status-icon {
+            font-size: 16px;
+            color: var(--sub);
+        }
+        
+        @keyframes pulse-green {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+        
+        @keyframes pulse-yellow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+        
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.2); }
+        }
+
+        .highlight {
+            background-color: orange !important;
+            color: black;
+        }
+
+        .highlight-box {
+            position: absolute;
+            border: 2px solid #009688;
+            background-color: rgb(0 150 136 / 10%);
+            display: none;
+            pointer-events: none;
+            z-index: +999;
+        }
+        .highlight-box .temp_humidity_info {
+            padding: 8px;
+            border-radius: 10px;
+            position: absolute;
+            top: -93%;
+            /*top: -222%;*/
+            left: calc(50% - 60px);
+        }
+        .highlight-box .temp_humidity_info > div {
+            background-color: #1e293b;
+            padding: 4px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .highlight-box .humidity_input_section {
+            position: absolute;
+            top: -170%;
+            left: calc(50% - 70px);
+            pointer-events: auto;
+            display: flex;
+            flex-direction: row-reverse;
+            align-items: center;
+            gap: 4px;
+        }
+        .highlight-box .humidity_input_section input {
+            width: 80px;
+            padding: 4px 8px;
+            font-size: 13px;
+            background: #111623;
+            border: 1px solid var(--muted);
+            color: var(--text);
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        .highlight-box .humidity_input_section input:focus {
+            outline: 2px solid #10b981;
+            border-color: #10b981;
+        }
+        .highlight-box .humidity_input_section button {
+            padding: 4px 12px;
+            font-size: 13px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.2s;
+        }
+        .highlight-box .humidity_input_section button:hover {
+            background: #059669;
+        }
+        .prob-hilight {
+            position: absolute;
+        }
+        /* Saved Points Markers */
+        .saved-point-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            border: 2px solid #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 100;
+            pointer-events: auto;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        .saved-point-marker:hover {
+            transform: scale(1.2);
+            z-index: 101;
+        }
+        .saved-point-info {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            background: #1e293b;
+            border: 1px solid #3b82f6;
+            border-radius: 6px;
+            font-size: 16px;
+            white-space: nowrap;
+            display: none;
+            pointer-events: none;
+            z-index: 102;
+        }
+        .saved-point-marker:hover .saved-point-info {
+            display: block;
+        }
+        .saved-point-marker {
+            cursor: pointer;
+        }
+        .saved-point-marker:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast {
+            background: #1e293b;
+            border: 1px solid var(--muted);
+            border-radius: 8px;
+            padding: 12px 16px;
+            min-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            pointer-events: auto;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .toast.success {
+            border-left: 4px solid #10b981;
+        }
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+        .toast.warning {
+            border-left: 4px solid #f59e0b;
+        }
+        .toast.info {
+            border-left: 4px solid #3b82f6;
+        }
+        .toast-icon {
+            font-size: 20px;
+            line-height: 1;
+        }
+        .toast-content {
+            flex: 1;
+            color: var(--text);
+            font-size: 14px;
+        }
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--sub);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        /* Edit Point Modal */
+        .edit-point-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(4px);
+        }
+        .edit-point-modal.active {
+            display: flex;
+        }
+        .edit-point-content {
+            background: var(--card);
+            border: 1px solid var(--muted);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+        }
+        .edit-point-content h3 {
+            margin: 0 0 20px 0;
+            color: var(--text);
+            font-size: 18px;
+            text-align: center;
+        }
+        .edit-point-field {
+            margin-bottom: 16px;
+        }
+        .edit-point-field label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text);
+            font-size: 14px;
+        }
+        .edit-point-field input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #111623;
+            border: 1px solid var(--muted);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .edit-point-field input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .edit-point-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .edit-point-actions button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .edit-point-actions .save-btn {
+            background: #10b981;
+            color: white;
+        }
+        .edit-point-actions .save-btn:hover {
+            background: #059669;
+        }
+        .edit-point-actions .cancel-btn {
+            background: var(--muted);
+            color: var(--text);
+        }
+        .edit-point-actions .cancel-btn:hover {
+            background: #374151;
+        }
+        /* Probes UI */
+        .probes-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0 6px 0;
+        }
+        .probes-controls input {
+            height: 36px;
+            padding: 0 10px;
+        }
+        .probes-controls button {
+            height: 36px;
+            padding: 0 14px;
+            cursor: pointer;
+        }
+        #probes-container {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+            margin-bottom: 10px;
+            width: 100%;
+            justify-content: space-between !important;
+            direction: ltr;
+        }
+        .probe-card {
+            background: rgba(0, 0, 0, 0.7);
+            /* border: 1px solid var(--muted); */
+            border-radius: 10px;
+            padding: 4px;
+            /* box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+            /* width: 100% !important; */
+            position: absolute;
+            z-index: +999;
+            top: calc(50% - 20px);
+            backdrop-filter: blur(10px);
+        }
+        .probe-checkbox {
+            height: 14px;
+            cursor: pointer;
+        }
+        .probe-title {
+            font-size: 12px;
+            color: var(--sub);
+            margin-bottom: 6px;
+            margin-top: 8px;
+            display: none;
+        }
+        .probe-humidity {
+            font-size: 15px;
+            font-weight: 700;
+            color: #00d2ee;
+            margin-bottom: 0px;
+            margin-top: 6px;
+        }
+        .probe-temp {
+            font-size: 14px;
+            color: #ffffff;
+            margin: 0;
+            /* display: none; */
+            {% if "personnel" in request.path %}display: none;{% endif %}
+        }
+        .probe-real-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #00ddff;
+            margin: 0;
+            /* display: none; */
+        }
+        .average-display {
+            border-radius: 8px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .average-display input {
+            flex: 1;
+            background-color: var(--card);
+            border: 0;
+            color: var(--text);
+            text-align: center;
+            font-size: 24px;
+            direction: ltr;
+        }
+        .average-display label {
+            color: var(--sub);
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .image-panel { 
+            width: 100%;
+            max-height: 40vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+         }
+        .image-wrap { 
+            position: relative;
+            width: 100%;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+         }
+         .image-wrap img {
+            width: 100%;
+         }
+        #Thermal_Img {
+            width: 100%;
+            border-radius: 8px;
+            display: block;
+            transition: filter 0.3s ease;
+         }
+        #Thermal_Img.system-inactive {
+            filter: blur(5px) brightness(0.5);
+            opacity: 0.6;
+        }
+        .system-inactive-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #ff6b6b;
+            padding: 20px 30px;
+            border-radius: 10px;
+            border: 2px solid #ff6b6b;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: +999;
+            text-align: center;
+            display: none;
+        }
+        .image-wrap {
+            position: relative;
+        }
+        .image-wrap.system-inactive .system-inactive-overlay {
+            display: block;
+        }
+
+        /* Settings Popup Styles */
+        .settings-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .settings-popup {
+            background: var(--card);
+            border: 1px solid var(--muted);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            position: relative;
+            scrollbar-color: var(--muted) var(--card);
+            scrollbar-width: thin;
+        }
+        .settings-popup::-webkit-scrollbar {
+            width: 8px;
+        }
+        .settings-popup::-webkit-scrollbar-track {
+            background: var(--card);
+        }
+        .settings-popup::-webkit-scrollbar-thumb {
+            background: var(--muted);
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--muted);
+        }
+
+        .settings-header h3 {
+            margin: 0;
+            color: var(--text);
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--sub);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: var(--muted);
+            color: var(--text);
+        }
+
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section h4 {
+            margin: 0 0 12px 0;
+            color: var(--text);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .settings-section label {
+            color: var(--sub);
+            font-size: 14px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .settings-section input, .settings-section button {
+            width: 100%;
+            height: 40px;
+            padding: 8px 12px;
+            background: var(--bg);
+            border: 1px solid var(--muted);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 14px;
+            margin-bottom: 10px;
+            direction: ltr;
+        }
+
+        .settings-section input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .settings-section button {
+            background: var(--accent);
+            color: white;
+            cursor: pointer;
+            border: none;
+            font-weight: 600;
+        }
+
+        .settings-section button:hover {
+            background: #4080e0;
+        }
+
+        .probe-controls-row {
+            display: flex;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .probe-controls-row input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .probe-controls-row button {
+            flex: 0 0 auto;
+            width: auto;
+            padding: 8px 16px;
+            margin-bottom: 0;
+        }
+
+        .logs-container {
+            max-height: 200px;
+            overflow-y: auto;
+            background: var(--bg);
+            border: 1px solid var(--muted);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .logs-container ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .logs-container li {
+            padding: 6px 0;
+            border-bottom: 1px dashed #222a36;
+            font-size: 13px;
+            color: var(--sub);
+        }
+
+        .logs-container li:last-child {
+            border-bottom: none;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            color: var(--sub);
+            font-size: 12px;
+        }
+
+        .logs-header a {
+            text-decoration: none;
+        }
+
+        .logs-header a:hover {
+            text-decoration: underline;
+        }
+        .edge-point {
+            position: absolute;
+            background-color: red;
+            width: 2px;
+            top: 0;
+            height: 100%;
+            z-index: 999;
+        }
+        .edge-point.draggable {
+            cursor: ew-resize;
+            width: 3px;
+            background-color: #ff3333;
+            box-shadow: 0 0 8px rgba(255,0,0,0.5);
+        }
+        .edge-point.draggable:hover {
+            background-color: #ff6666;
+            box-shadow: 0 0 12px rgba(255,0,0,0.8);
+        }
+        .edge-point.dragging {
+            background-color: #ffaa00;
+        }
+        .roll_number {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .roll_number label {
+            color: var(--sub);
+            font-size: 14px;
+        }
+        .roll_number input {
+            background: linear-gradient(135deg, var(--card) 0%, #1a1f2e 100%);
+            border: 1px solid var(--muted);
+            font-size: 14px;
+            border-radius: 8px;
+            padding: 8px;
+            margin: 0 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            max-width: 90px;
+        }
+        .roll_timer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .roll_timer input {
+            background: none;
+            border: 0;
+            font-size: 14px;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+            text-align: center;
+            max-width: 45px;
+        }
+        .grid-panel {
+            display: none;
+        }
+        /* humiditi svg chart */
+        .humidity_svg_points {
+            width: 98%;
+            height: 200px;
+            padding: 12px;
+        }
+        .humidity_card {
+            width: 100%;
+            height: 100%;
+            background-col_on_imageor: var(--bg);
+            border-radius: 16px;
+            position: relative;
+        }
+        .humidity_card::before {
+            content: '';
+            direction: ltr;
+            position: absolute;
+            border-bottom: 2px dashed rgba(21, 255, 138, 0.5);
+            width: calc(100% - 80px);
+            height: 1px;
+            top: 50%;
+            left: 40px;
+        }
+        .humidity_card::after {
+            content: '{{ threshold|default:7 }}';
+            direction: ltr;
+            position: absolute;
+            top: 46%;
+            left: 10px;
+        }
+        .humidity_card svg {
+            height: 100%;
+            width: 100%;
+            position: relative;
+            z-index: +999;
+        }
+        .humidity_card svg circle {
+            transition: 0.4s;
+            fill:#fff;
+            /* stroke: var(--bg); */
+            stroke: #222731;
+            stroke-width: 4px;
+            r: 7;
+            z-index: +999;
+            position: relative;
+        }
+        .humidity_card svg path {
+            transition: 0.4s;
+            fill:none;
+            stroke: rgba(255, 255, 255, 0.6);
+            stroke-width:1px;
+            z-index: 0;
+        }
+        .humidity_card svg path,.humidity_card svg g{
+            position: absolute;
+        }
+        .humidity_card span {
+            direction: ltr;
+            position: absolute;
+            width: calc(100% - 80px);
+            height: 1px;
+            z-index: 0;
+        }
+        .humidity_card span:nth-child(1) {
+            top: 25%;
+            left: 40px;
+            /* border-col_on_imageor: rgba(255, 21, 21, 0.5); */
+            border-top: 2px dashed rgba(255, 121, 112, 0.6);
+            height: 51px;
+            background: linear-gradient(0deg, #ff76761a, transparent);
+        }
+        .humidity_card span:nth-child(1)::after {
+            content: '+1';
+            direction: ltr;
+            position: absolute;
+            left: -30px;
+            top: -10px;
+        }
+        .humidity_card span:nth-child(2) {
+            top: 50%;
+            left: 40px;
+            height: 51px;
+            border-bottom: 2px dashed rgba(255, 182, 47, 0.6);
+            background: linear-gradient(180deg, #ff74181a, transparent);
+        }
+        .humidity_card span:nth-child(2)::after {
+            content: '-1';
+            direction: ltr;
+            position: absolute;
+            left: -30px;
+            bottom: -10px;
+        }
+        /* end */
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="toolbar">
+            <div class="left">
+                <h3>داشبورد دما و رطوبت</h3>
+                <label class="toggle"><input type="checkbox" id="toggle-image"> <span>نمایش تصویر</span></label>
+                <label {% if "personnel" in request.path %}style="display: none;"{% endif %} class="toggle"><input type="checkbox" id="toggle-grid"> <span>نمایش جدول دما</span></label>
+                <div id="status-bar" class="status-bar">
+                    <div class="status-indicator" id="status-indicator"></div>
+                    <div class="status-text" id="status-text">سیستم عادی</div>
+                    <div class="status-icon" id="status-icon">●</div>
+                </div>
+                <div class="roll_number">
+                    <label for="roll-number">شماره رول</label>
+                    <input type="number" id="roll-number" placeholder="شماره رول" readonly value="{{ roll_number|default:0 }}" style="border: 1px solid var(--muted); border-radius: 6px; padding: 4px 8px;">
+                    <button id="roll-edit-btn" onclick="toggleRollEditMode()" style="padding: 6px 12px; border-radius: 6px; border: none; background: var(--accent); color: white; cursor: pointer;">ویرایش</button>
+                </div>
+            </div>
+            <div class="center">
+                <div class="average-display">
+                    <label>میانگین دما و رطوبت نقاط انتخاب شده:</label>
+                    <input type="text" id="average-display-input" readonly placeholder="هیچ نقطه ای انتخاب نشده">
+                </div>
+            </div>
+            {% if not "personnel" in request.path %}
+            <div class="right">
+                <button id="pause-btn" onclick="togglePause()">توقف</button>
+                <button class="secondary" onclick="openSettings()">تنظیمات</button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Show All Sensors Toggle -->
+        {% if not "personnel" in request.path %}
+        <div class="show-all-sensors-toggle" style="display: flex; gap: 8px; padding: 12px 16px; background: var(--card); border-bottom: 1px solid var(--muted); align-items: center;">
+            <label class="toggle" style="display: flex; gap: 8px; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="show-all-sensors-checkbox" onchange="toggleShowAllSensors()">
+                <span>نمایش همه سنسورها</span>
+            </label>
+        </div>
+        {% endif %}
+        <!-- Multi-Sensor Container - Always in multi-sensor mode, rendered via Django template -->
+        <div id="multi-sensor-container" class="multi-sensor-container">
+            {% for sensor in sensors %}
+            <div class="sensor-card-wrapper" data-sensor-id="{{ sensor.id }}" {% if not forloop.first %}style="display: none;"{% endif %}>
+                <div class="sensor-card">
+                    <div class="sensor-header">
+                        <h4>{{ sensor.name }}</h4>
+                        <!-- Sensor Data Display -->
+                    <div class="sensor-data">
+                        <div class="data-row">
+                            <span>دما:</span>
+                            <span class="sensor-temp" data-sensor-id="{{ sensor.id }}">0.00°C</span>
+                        </div>
+                        <div class="data-row">
+                            <span>رطوبت:</span>
+                            <span class="sensor-humidity" data-sensor-id="{{ sensor.id }}">0.00%</span>
+                        </div>
+                        <div class="data-row">
+                            <span>شماره رول:</span>
+                            <span class="sensor-roll" data-sensor-id="{{ sensor.id }}">0</span>
+                        </div>
+                    </div>
+                        <span class="connection-status connected" id="connection-status-{{ sensor.id }}">●</span>
+                    </div>
+                    
+                    <!-- Single Sensor View Structure (reused for each sensor) -->
+                    <div class="content">
+                        <div class="panel">
+                            <div class="panel image-panel" data-sensor-id="{{ sensor.id }}">
+                                <div class="image-wrap" data-sensor-id="{{ sensor.id }}">
+                                    <div class="probes-container" data-sensor-id="{{ sensor.id }}"></div>
+                                    <img src="{% static 'thermal_image.jpg' %}" class="Thermal_Img" data-sensor-id="{{ sensor.id }}" id="Thermal_Img_{{ sensor.id }}">
+                                    <div class="system-inactive-overlay" data-sensor-id="{{ sensor.id }}">
+                                        <div>⚠️ سیستم غیرفعال</div>
+                                        <div style="font-size: 14px; margin-top: 10px; color: #ccc;" class="connection-error-message" data-sensor-id="{{ sensor.id }}"></div>
+                                    </div>
+                                    <div class="highlight-box" data-sensor-id="{{ sensor.id }}">
+                                        <div class="temp_humidity_info" style="display: flex;{% if "personnel" in request.path %}display: none !important;{% endif %}">
+                                            <div class="info-box" data-sensor-id="{{ sensor.id }}">0 °C</div>
+                                            <div style="margin-right: 2px;" class="humidity-box" data-sensor-id="{{ sensor.id }}">0 %</div>
+                                        </div>
+                                        <div class="humidity_input_section" style="display: none; {% if "personnel" in request.path %}display: none !important;{% endif %}">
+                                            <input type="number" class="humidity-input" step="0.01" placeholder="رطوبت" data-sensor-id="{{ sensor.id }}">
+                                            <button class="save-humidity-btn" onclick="saveHumidityValue({{ sensor.id }})" data-sensor-id="{{ sensor.id }}">ذخیره</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <section class="humidity_svg_points">
+                                <div class="humidity_card">
+                                    <span></span>
+                                    <span></span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100% 100%" id="humidity_svg_card_{{ sensor.id }}">
+                                        
+                                    </svg>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+
+                    <div class="panel grid-panel" style="margin: 0 16px 16px 16px;{% if "personnel" in request.path %}display: none;{% endif %}" data-sensor-id="{{ sensor.id }}">
+                        <div class="temperature-grid" data-sensor-id="{{ sensor.id }}"></div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% for sensor in sensors %}
+            {% if forloop.first %}
+            <div class="chart" style="margin-top: 10px;">
+                {% include 'thermal/chart2.html' %}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Edit Point Modal -->
+    <div class="edit-point-modal" id="edit-point-modal">
+        <div class="edit-point-content">
+            <div class="edit-point-header">
+                <h3>ویرایش نقطه ذخیره شده</h3>
+                <button class="close-btn" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="edit-point-body">
+                <div class="edit-point-field">
+                    <label>دما (°C):</label>
+                    <input type="number" id="edit-temp-value" step="0.1">
+                </div>
+                <div class="edit-point-field">
+                    <label>رطوبت (%):</label>
+                    <input type="number" id="edit-humidity-value" step="0.01">
+                </div>
+                <div class="edit-point-field">
+                    <label>موقعیت (x, y):</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span>(<span id="edit-x-value">0</span>, <span id="edit-y-value">0</span>)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="edit-point-footer">
+                <button class="btn-cancel" onclick="closeEditModal()">لغو</button>
+                <button class="btn-delete" onclick="deleteSavedPointFromModal()">حذف</button>
+                <button class="btn-save" onclick="updateSavedPointFromModal()">ذخیره</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Settings Popup -->
+    <div class="settings-backdrop" id="settings-backdrop">
+        <div class="settings-popup">
+            <div class="settings-header">
+                <h3>تنظیمات</h3>
+                <button class="close-btn" onclick="closeSettings()">&times;</button>
+            </div>
+            <!-- Sensor Selection Section -->
+            <div class="settings-section" style="margin-bottom: 16px;">
+                <h4>انتخاب سنسور</h4>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <select id="sensor-selector" style="flex: 1; min-width: 200px; padding: 8px; background: var(--bg); border: 1px solid var(--muted); border-radius: 6px; color: var(--text);">
+                        {% for sensor in sensors %}
+                            <option value="{{ sensor.id }}" {% if sensor.id == current_sensor.id %}selected{% endif %}>{{ sensor.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button id="add-sensor-btn" class="secondary" style="padding: 8px 12px;">افزودن سنسور</button>
+                </div>
+                <div id="add-sensor-form" style="display: none; margin-top: 12px; padding: 12px; background: var(--bg); border: 1px solid var(--muted); border-radius: 6px;">
+                    <input type="text" id="new-sensor-name" placeholder="نام سنسور" style="width: 100%; margin-bottom: 8px; padding: 8px; background: var(--card); border: 1px solid var(--muted); border-radius: 4px; color: var(--text);">
+                    <input type="text" id="new-sensor-endpoint" placeholder="آدرس API (مثال: 172.16.1.46/data)" style="width: 100%; margin-bottom: 8px; padding: 8px; background: var(--card); border: 1px solid var(--muted); border-radius: 4px; color: var(--text);">
+                    <div style="display: flex; gap: 8px;">
+                        <button id="save-sensor-btn" style="flex: 1; padding: 8px; background: var(--accent); color: #fff; border: 0; border-radius: 4px; cursor: pointer;">ذخیره</button>
+                        <button id="cancel-sensor-btn" style="flex: 1; padding: 8px; background: transparent; border: 1px solid var(--muted); color: var(--text); border-radius: 4px; cursor: pointer;">لغو</button>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section" style="display: flex;gap: 10px;flex-wrap: wrap;justify-content: space-between;">
+                <button style="flex-basis: 32%;" id="pause-btn" onclick="togglePause()">توقف</button>
+                <button style="flex-basis: 32%;" {% if "personnel" in request.path %}style="display: none;"{% endif %} class="secondary" id="toggle-saved-points-btn" onclick="toggleSavedPoints()">نمایش رطوبت های دستی</button>
+                <button style="flex-basis: 32%;" class="secondary" onclick="location.href='/device_inputs.json'">dataset (json)</button>
+                <button style="flex-basis: 32%;" class="secondary" onclick="location.reload()">به‌روزرسانی دستی</button>
+            </div>
+            <!-- Formula Section -->
+            <div class="settings-section" {% if "personnel" in request.path %}style="display: none;"{% endif %}>
+                <h4>فرمول محاسبه رطوبت</h4>
+                <label for="settings-formula-input">فرمول فعلی:</label>
+                <input type="text" id="settings-formula-input" list="settings-suggestions" value="-0.3771*temp+26.63">
+                <div style="display: flex;justify-content: space-between;">
+                    <small style="color: var(--sub); font-size: 12px;">رطوبت از دما و فرمول فعال محاسبه می‌شود.</small>
+                </div>
+                
+                <!-- Formula Examples Section -->
+                <div class="formula-examples-section" style="margin-top: 12px; padding: 12px; background: var(--bg); border: 1px solid var(--muted); border-radius: 6px;">
+                    <h5 style="margin: 0 0 8px 0; color: var(--text); font-size: 14px; font-weight: 600;">نمونه خروجی فرمول:</h5>
+                    <div class="formula-examples" style="display: flex; gap: 6px;justify-content: space-between;width: 100%;">
+                        <div class="formula-example" style="display: flex; align-items: center; gap: 8px; font-size: 13px;direction: ltr;">
+                            <span style="color: #ff6b6b; font-weight: 600;">50°C</span>
+                            <span style="color: var(--sub);">→</span>
+                            <span class="example-humidity-1" style="color: #00d2ee; font-weight: 600;">0%</span>
+                        </div>
+                        <div class="formula-example" style="display: flex; align-items: center; gap: 8px; font-size: 13px;direction: ltr;">
+                            <span style="color: #ffa500; font-weight: 600;">51.5°C</span>
+                            <span style="color: var(--sub);">→</span>
+                            <span class="example-humidity-2" style="color: #00d2ee; font-weight: 600;">0%</span>
+                        </div>
+                        <div class="formula-example" style="display: flex; align-items: center; gap: 8px; font-size: 13px;direction: ltr;">
+                            <span style="color: #4ade80; font-weight: 600;">53°C</span>
+                            <span style="color: var(--sub);">→</span>
+                            <span class="example-humidity-3" style="color: #00d2ee; font-weight: 600;">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Humidity Threshold Section -->
+            <div class="settings-section" {% if "personnel" in request.path %}style="display: none;"{% endif %}>
+                
+            </div>
+
+            <!-- Probe Count Section -->
+            <div class="settings-section" {% if "personnel" in request.path %}style="display: none;"{% endif %} style="display: flex;gap: 10px;justify-content: space-between;">
+                <div>
+                    <h4>تعداد المان‌ها</h4>
+                    <div class="probe-controls-row">
+                        <div>
+                            <label for="settings-probes-input">تعداد المان‌ها:</label>
+                            <input type="number" id="settings-probes-input" min="1" value="10" placeholder="مثلا 4">
+                        </div>
+                        <button id="settings-probes-apply-btn" type="button">ایجاد</button>
+                    </div>
+                </div>
+                <div>
+                    <h4>حد رطوبت مناسب</h4>
+                    <div class="probe-controls-row">
+                        <div>
+                            <label for="settings-threshold-input">حد رطوبت مناسب (%):</label>
+                            <input type="number" id="settings-threshold-input" min="0" max="100" step="0.1" value="{{ threshold|default:7 }}" placeholder="مثلا 7">
+                        </div>
+                        <button id="settings-threshold-apply-btn" type="button">ذخیره</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edge Detection Thresholds Section -->
+            <div class="settings-section" {% if "personnel" in request.path %}style="display: none;"{% endif %}>
+                <h4>تنظیمات لبه</h4>
+                
+                <!-- Toggle: Threshold-based vs Manual -->
+                <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <label for="find-edge-by-threshold-toggle" style="margin: 0; flex: 1;">تشخیص لبه با آستانه:</label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                        <input type="checkbox" id="find-edge-by-threshold-toggle" {% if find_edge_by_threshold %}checked{% endif %} style="width: auto; height: auto; cursor: pointer;">
+                        <span id="find-edge-by-threshold-status" style="color: var(--accent);">{% if find_edge_by_threshold %}خودکار{% else %}دستی{% endif %}</span>
+                    </label>
+                </div>
+                
+                <!-- Threshold settings (shown when find_edge_by_threshold is ON) -->
+                <div id="threshold-edge-settings" {% if not find_edge_by_threshold %}style="display: none;"{% endif %}>
+                    <div>
+                        <label for="settings-edge-threshold-input">پرش ناگهانی دما:</label>
+                        <input type="number" id="settings-edge-threshold-input" min="0" max="100" step="0.1" value="{{edge_threshold|default:5}}" placeholder="5">
+                    </div>
+                    <div style="margin-top: 16px; display: flex; align-items: center; gap: 8px;">
+                        <label for="auto-edge-detection-toggle" style="margin: 0; flex: 1;">تشخیص خودکار لبه:</label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                            <input type="checkbox" id="auto-edge-detection-toggle" {% if auto_edge_detection %}checked{% endif %} style="width: auto; height: auto; cursor: pointer;">
+                            <span id="auto-edge-detection-status" style="color: var(--accent);">{% if auto_edge_detection %}فعال{% else %}غیرفعال{% endif %}</span>
+                        </label>
+                    </div>
+                    <button id="settings-edge-apply-btn" type="button" style="margin-top: 10px;">اعمال</button>
+                    <small style="color: var(--sub); font-size: 12px;">این مقدار برای تشخیص لبه در تصویر حرارتی استفاده می‌شود.</small>
+                </div>
+                
+                <!-- Manual edge settings (shown when find_edge_by_threshold is OFF) -->
+                <div id="manual-edge-settings" {% if find_edge_by_threshold %}style="display: none;"{% endif %}>
+                    <small style="color: var(--sub); font-size: 12px;">خطوط قرمز را با کشیدن جابجا کنید تا موقعیت لبه‌ها را مشخص کنید.</small>
+                </div>
+            </div>
+
+            <!-- Logs Section -->
+            {% if log %}
+            <div class="settings-section" style="display: none;">
+                <h4>لاگ‌ها</h4>
+                <div class="logs-container">
+                    <div class="logs-header">
+                        <a href="{% url 'show_log' %}">نمایش همه</a>
+                        <span>مرتب‌سازی براساس تاریخ/زمان</span>
+                    </div>
+                    <ul>
+                        {% for x in log reversed %}
+                            <li><strong>{{x.date}} {{x.time}}</strong> | Temp: {{x.temp}}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Get CSRF token for Django
+        const csrfToken = '{{ csrf_token }}';
+        
+        // Current sensor ID
+        let currentSensorId = {{ current_sensor.id|default:1 }};
+        
+        // Store gridData per sensor
+        const gridDataBySensor = {};
+        let highlightedCells = [];
+        // Make variables globally accessible for humidity chart
+        var cellWidth, cellHeight, cols = {{ thermal_cols }}, rows = {{ thermal_rows }};
+        var imgWidth, imgHeight;
+        var intervalId = null;
+        var isPaused = false;
+        var lastHovered = null;
+        var LastPointSelected = null;
+        const formula = document.getElementById("settings-formula-input");
+        // Make probePoints globally accessible for humidity chart - per sensor
+        const probePointsBySensor = {};
+        // Keep probePoints for backward compatibility (first active sensor)
+        var probePoints = [];
+        var numProbes = 0;
+        var probes_input = document.getElementById("settings-probes-input").value;
+        var alarmActive = false;
+        var alarmSound = new Audio('{% static 'alarm.wav' %}');
+        var edge_threshold = {{ edge_threshold|default:5 }};
+        var find_edge_by_threshold = {{ find_edge_by_threshold|yesno:"true,false" }};
+        // Make humidity_threshold globally accessible for humidity chart
+        var humidity_threshold = {{ threshold|default:7 }};
+        
+        // Multi-Sensor Mode Variables - Always fetch all sensors
+        let showAllSensors = false; // Checkbox state
+        let multiSensorUpdateInterval = null;
+        let pollInterval = 500; // Start with 500ms
+        let consecutiveErrors = 0;
+        const MAX_POLL_INTERVAL = 5000; // Max 5 seconds
+        const MIN_POLL_INTERVAL = 300;  // Min 300ms
+        const imageObservers = new Map();
+        let allSensorsData = {}; // Store all sensors data
+        let firstActiveSensorId = null; // First active sensor ID
+
+        // Sensor management functions
+        function getSensorId() {
+            return currentSensorId;
+        }
+        
+        // Toggle show all sensors checkbox
+        function toggleShowAllSensors() {
+            const checkbox = document.getElementById('show-all-sensors-checkbox');
+            showAllSensors = checkbox.checked;
+            
+            const sensorWrappers = document.querySelectorAll('.sensor-card-wrapper');
+            
+            if (showAllSensors) {
+                // Show all sensors
+                sensorWrappers.forEach(wrapper => {
+                    wrapper.style.display = 'block';
+                    wrapper.classList.add('show-all');
+                });
+            } else {
+                // Show only first active sensor
+                sensorWrappers.forEach((wrapper, index) => {
+                    if (index === 0) {
+                        wrapper.style.display = 'block';
+                    } else {
+                        wrapper.style.display = 'none';
+                    }
+                    wrapper.classList.remove('show-all');
+                });
+            }
+        }
+        
+        // Update sensor view with sensor data
+        function updateSensorView(sensorId, sensorData) {
+            // Update thermal image
+            const thermalImg = document.getElementById(`Thermal_Img_${sensorId}`);
+            if (thermalImg) {
+                thermalImg.src = `/static/thermal_image_${sensorId}.jpg?t=${Date.now()}`;
+            }
+            
+            // Update connection status
+            const connectionStatus = document.getElementById(`connection-status-${sensorId}`);
+            const connectionErrorMsg = document.querySelector(`.connection-error-message[data-sensor-id="${sensorId}"]`);
+            const imageWrap = document.querySelector(`.image-wrap[data-sensor-id="${sensorId}"]`);
+            const thermalImgEl = document.getElementById(`Thermal_Img_${sensorId}`);
+            
+            if (connectionStatus) {
+                connectionStatus.className = `connection-status ${sensorData.is_connected ? 'connected' : 'disconnected'}`;
+                connectionStatus.textContent = sensorData.is_connected ? '●' : '○';
+            }
+            
+            if (sensorData.is_connected) {
+                if (imageWrap) imageWrap.classList.remove('system-inactive');
+                if (thermalImgEl) thermalImgEl.classList.remove('system-inactive');
+            } else {
+                if (imageWrap) imageWrap.classList.add('system-inactive');
+                if (thermalImgEl) thermalImgEl.classList.add('system-inactive');
+                if (connectionErrorMsg && sensorData.error_message) {
+                    connectionErrorMsg.textContent = sensorData.error_message;
+                }
+            }
+            
+            // Update sensor data display
+            const tempEl = document.querySelector(`.sensor-temp[data-sensor-id="${sensorId}"]`);
+            const humEl = document.querySelector(`.sensor-humidity[data-sensor-id="${sensorId}"]`);
+            const rollEl = document.querySelector(`.sensor-roll[data-sensor-id="${sensorId}"]`);
+            
+            // Always update temperature and humidity for all sensors
+            // Handle 0, undefined, and null values properly
+            if (tempEl) {
+                const temp = (sensorData.temperature !== undefined && sensorData.temperature !== null) ? sensorData.temperature : 0;
+                tempEl.textContent = `${temp.toFixed(2)}°C`;
+            }
+            if (humEl) {
+                const hum = (sensorData.humidity !== undefined && sensorData.humidity !== null) ? sensorData.humidity : 0;
+                humEl.textContent = `${hum.toFixed(2)}%`;
+            }
+            if (rollEl) rollEl.textContent = sensorData.roll_number || 0;
+            
+            // Update info box and humidity box for first sensor (main display)
+            if (sensorId == firstActiveSensorId) {
+                const infoBox = document.querySelector(`.info-box[data-sensor-id="${sensorId}"]`);
+                const humidityBox = document.querySelector(`.humidity-box[data-sensor-id="${sensorId}"]`);
+                if (infoBox) {
+                    const temp = (sensorData.temperature !== undefined && sensorData.temperature !== null) ? sensorData.temperature : 0;
+                    infoBox.textContent = `${temp.toFixed(2)} °C`;
+                }
+                if (humidityBox) {
+                    const hum = (sensorData.humidity !== undefined && sensorData.humidity !== null) ? sensorData.humidity : 0;
+                    humidityBox.textContent = `${hum.toFixed(2)} %`;
+                }
+            }
+        }
+        
+        function fetchAllSensorsData() {
+            const startTime = performance.now();
+            
+            // Always fetch all active sensors from backend
+            fetch('/view/api-data-multi/')
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    const fetchTime = performance.now() - startTime;
+                    
+                    if (data.status === 'success' && data.sensors) {
+                        // Store all sensors data
+                        allSensorsData = data.sensors;
+                        
+                        // Get first active sensor ID (only set if not already set or if current sensor is invalid)
+                        const sensorIds = Object.keys(data.sensors).map(id => parseInt(id));
+                        if (sensorIds.length > 0) {
+                            // Only update firstActiveSensorId if it's not set or if current firstActiveSensorId is not in the list
+                            if (!firstActiveSensorId || !data.sensors[firstActiveSensorId]) {
+                                firstActiveSensorId = sensorIds[0];
+                            }
+                            // Update current sensor ID to first active sensor only if current is invalid
+                            if (!currentSensorId || !data.sensors[currentSensorId]) {
+                                currentSensorId = firstActiveSensorId;
+                            }
+                        }
+                        
+                        // Update all sensors (HTML already exists from Django template)
+                        Object.keys(data.sensors).forEach(sensorIdKey => {
+                            const sensorIdNum = parseInt(sensorIdKey);
+                            const sensorData = data.sensors[sensorIdKey];
+                            updateSensorView(sensorIdNum, sensorData);
+                            
+                            // Store and display edge data for this sensor
+                            if (sensorData.edge_data) {
+                                edgeDataBySensor[sensorIdNum] = sensorData.edge_data;
+                                displayEdgePoints(sensorData.edge_data, sensorIdNum);
+                            }
+                            
+                            // Update probes for this sensor if they exist
+                            if (probePointsBySensor[sensorIdNum] && probePointsBySensor[sensorIdNum].length > 0) {
+                                updateProbesForSensor(sensorIdNum);
+                            }
+                        });
+                        
+                        // Reset error count on success
+                        consecutiveErrors = 0;
+                        
+                        // Adjust polling based on fetch time
+                        if (fetchTime > 200) {
+                            // Slow response, increase interval slightly
+                            pollInterval = Math.min(pollInterval + 50, MAX_POLL_INTERVAL);
+                        } else if (fetchTime < 50) {
+                            // Fast response, can poll more frequently
+                            pollInterval = Math.max(pollInterval - 25, MIN_POLL_INTERVAL);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching multi-sensor data:', error);
+                    consecutiveErrors++;
+                    
+                    // Exponential backoff on errors
+                    pollInterval = Math.min(pollInterval * 1.5, MAX_POLL_INTERVAL);
+                    
+                    // If too many errors, reduce polling frequency
+                    if (consecutiveErrors > 5) {
+                        pollInterval = MAX_POLL_INTERVAL;
+                    }
+                });
+        }
+        
+        function startMultiSensorUpdates() {
+            // Clear existing interval
+            if (multiSensorUpdateInterval) {
+                clearTimeout(multiSensorUpdateInterval);
+            }
+            
+            // Always fetch all sensors data (backend always serves all active sensors)
+            function scheduleNext() {
+                multiSensorUpdateInterval = setTimeout(() => {
+                    fetchAllSensorsData();
+                    scheduleNext(); // Schedule next with current pollInterval
+                }, pollInterval);
+            }
+            
+            scheduleNext();
+        }
+        
+        function create_humidity_chart_svg(SensorID) {
+            const humidity_card = document.getElementsByClassName("humidity_card")[0];
+            const humidity_svg_card = document.getElementById(`humidity_svg_card_${SensorID}`);
+            let svg_range = 14;
+            let svg_offset = 100;
+            const circle_width = 12;
+            // Check if probePoints is defined and has items, and other required variables
+            if (typeof probePointsBySensor[SensorID] === 'undefined' || !probePointsBySensor[SensorID] || !Array.isArray(probePointsBySensor[SensorID]) || probePointsBySensor[SensorID].length === 0) {
+                return;
+            }
+            
+            // Check if cellWidth and humidity_threshold are defined
+            if (typeof cellWidth === 'undefined' || typeof humidity_threshold === 'undefined') {
+                return;
+            }
+            
+            let card_width = humidity_card.clientWidth;
+            let card_height = humidity_card.clientHeight;
+            let space_of_each_probe = ((edgeDataBySensor[SensorID].end_col - edgeDataBySensor[1].start_col)*cellWidth) / (probePointsBySensor[SensorID].length)
+            if (!humidity_svg_card.children.length > 0) {
+                for(let i = 0; i <= probePointsBySensor[SensorID].length; i++) {
+                    if (!probePointsBySensor[SensorID][i]) continue;
+                    if (typeof probePointsBySensor[SensorID][i].col_on_image === 'undefined' || typeof probePointsBySensor[SensorID][i].humVal === 'undefined') {
+                        continue;
+                    }
+                    let position_x = `${(edgeDataBySensor[1].start_col)*cellWidth + (space_of_each_probe * i+1) - space_of_each_probe/2}`; //(i+1)*(((card_width-svg_offset)/probePointsBySensor[SensorID].length)+2)
+                    let position_y = 100-((100/svg_range)*probePointsBySensor[SensorID][i].humVal)
+                    let nextY = i < (probePointsBySensor[SensorID].length - 1) && probePointsBySensor[SensorID][i+1] ? (298-((card_height/svg_range)*probePointsBySensor[SensorID][i+1].humVal))-(298-((card_height/svg_range)*probePointsBySensor[SensorID][i].humVal)) : '';
+                    
+                    // console.log("nextY", nextY);
+                    let html = `
+                    <path class="ltr_path" d="M ${position_x} , ${(card_height-2)-((card_height/svg_range)*probePointsBySensor[SensorID][i].humVal)} c 14.26 -2.36 , 33.34 0 , ${((card_width-svg_offset)/probePointsBySensor[SensorID].length)-circle_width} ${nextY}"/>
+                    <circle class="circle" cx="${position_x}" cy="${position_y}%" r="3.5" />
+                                `
+                    humidity_svg_card.insertAdjacentHTML("beforeend",html);
+                }
+                //humidity_svg_card.children[humidity_svg_card.children.length-2].style.display = "none"
+            } else {
+                let circles = humidity_svg_card.querySelectorAll("circle");
+                let paths = humidity_svg_card.querySelectorAll("path");
+                // if (circles.length !== probePointsBySensor[SensorID].length || paths.length !== probePointsBySensor[SensorID].length) {
+                //     // Recreate if count doesn't match
+                //     humidity_svg_card.innerHTML = '';
+                //     create_humidity_chart_svg();
+                //     return;
+                // }
+                for(let i = 0; i <= probePointsBySensor[SensorID].length; i++) {
+                    if (!probePointsBySensor[SensorID][i]) continue;
+                    svg_range = humidity_threshold*2;
+                    let svg_humDiff = (probePointsBySensor[SensorID][i].humVal - humidity_threshold).toFixed(2);
+                    let circle_col_on_imageor = "#fff";
+                    if (svg_humDiff < 0) {
+                        if (svg_humDiff >= -0.19) {
+                            circle_col_on_imageor = `#51fd92`;
+                        } else {
+                            circle_col_on_imageor = `#ff8800`;
+                        }
+                    } else {
+                        if (svg_humDiff <= 0.19) {
+                            circle_col_on_imageor = `#51fd92`;
+                        } else {
+                            circle_col_on_imageor = `#ff4444`;
+                        }
+                    }
+                    if (typeof probePointsBySensor[SensorID][i].col_on_image === 'undefined' || typeof probePointsBySensor[SensorID][i].humVal === 'undefined') {
+                        continue;
+                    }
+                    if (!circles[i] || !paths[i]) continue;
+                    let position_x = `${((edgeDataBySensor[1].start_col)*cellWidth + (space_of_each_probe * i+1)) + cellWidth - space_of_each_probe/2}` //(i+1)*(((card_width-svg_offset)/probePointsBySensor[SensorID].length)+2)
+                    let position_y = 100-((100/svg_range)*probePointsBySensor[SensorID][i].humVal)
+                    let nextY = i < (probePointsBySensor[SensorID].length - 1) && probePointsBySensor[SensorID][i+1] ? (298-((card_height/svg_range)*probePointsBySensor[SensorID][i+1].humVal))-(298-((card_height/svg_range)*probePointsBySensor[SensorID][i].humVal)) : '';
+                    circles[i].setAttribute("cy",`${position_y}%`);
+                    circles[i].setAttribute("cx",`${position_x}`);
+                    circles[i].style.fill = circle_col_on_imageor;
+                    paths[i].setAttribute("d",`M ${position_x} , ${(card_height-2)-((card_height/svg_range)*probePointsBySensor[SensorID][i].humVal)} c 14.26 -2.36 , 33.34 0 , ${((card_width-svg_offset)/probePointsBySensor[SensorID].length)-circle_width} ${nextY}`);
+                }
+                // humidity_svg_card.children[humidity_svg_card.children.length-2].remove()
+            }
+        }
+        
+        // Update all visible images periodically
+        setInterval(() => {
+            // Update images for all visible sensor cards
+            document.querySelectorAll('.sensor-card-wrapper').forEach(wrapper => {
+                const rect = wrapper.getBoundingClientRect();
+                const isVisible = rect.top < window.innerHeight && rect.bottom > 0 && wrapper.style.display !== 'none';
+                
+                if (isVisible) {
+                    const sensorId = wrapper.dataset.sensorId;
+                    const img = document.getElementById(`Thermal_Img_${sensorId}`);
+                    if (img) {
+                        img.src = `/static/thermal_image_${sensorId}.jpg?t=${Date.now()}`;
+                    }
+                }
+            });
+        }, 500); // Update every 500ms, but only visible ones
+        
+        function loadSensorSettings(sensorId) {
+            fetch(`/view/get-probe-config/?sensor_id=${sensorId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Update formula
+                        formula.value = data.active_formula;
+                        updateFormulaExamples();
+                        
+                        // Update humidity threshold
+                        document.getElementById("settings-threshold-input").value = data.humidity_threshold;
+                        humidity_threshold = data.humidity_threshold;
+                        
+                        // Update edge threshold
+                        document.getElementById("settings-edge-threshold-input").value = data.edge_threshold;
+                        edge_threshold = data.edge_threshold;
+                        
+                        // Update probe count
+                        document.getElementById("settings-probes-input").value = data.probe_count || 10;
+                        
+                        // Update edge detection toggles
+                        const findEdgeToggle = document.getElementById("find-edge-by-threshold-toggle");
+                        const autoEdgeToggle = document.getElementById("auto-edge-detection-toggle");
+                        
+                        if (findEdgeToggle) {
+                            findEdgeToggle.checked = data.find_edge_by_threshold;
+                            find_edge_by_threshold = data.find_edge_by_threshold;
+                            const statusText = document.getElementById("find-edge-by-threshold-status");
+                            if (statusText) {
+                                statusText.textContent = data.find_edge_by_threshold ? "خودکار" : "دستی";
+                            }
+                            document.getElementById("threshold-edge-settings").style.display = data.find_edge_by_threshold ? "block" : "none";
+                            document.getElementById("manual-edge-settings").style.display = data.find_edge_by_threshold ? "none" : "block";
+                        }
+                        
+                        if (autoEdgeToggle) {
+                            autoEdgeToggle.checked = data.auto_edge_detection;
+                            const statusText = document.getElementById("auto-edge-detection-status");
+                            if (statusText) {
+                                statusText.textContent = data.auto_edge_detection ? "فعال" : "غیرفعال";
+                            }
+                        }
+                        
+                        // Update edge data for this sensor
+                        if (data.edge_data) {
+                            if (!edgeDataBySensor[sensorId]) {
+                                edgeDataBySensor[sensorId] = {};
+                            }
+                            edgeDataBySensor[sensorId] = data.edge_data;
+                        }
+                        
+                        // Reload probes if count changed
+                        const currentProbeCount = probePointsBySensor[sensorId] ? probePointsBySensor[sensorId].length : 0;
+                        if (data.probe_count > 0 && currentProbeCount !== data.probe_count) {
+                            if (data.probes_data && Object.keys(data.probes_data).length > 0) {
+                                createProbesFromCount(data.probe_count, data.probes_data, data.checked_probes, sensorId);
+                            } else {
+                                createProbes(data.probe_count, sensorId);
+                            }
+                        }
+                        
+                        showToast(`تنظیمات سنسور "${data.sensor_name}" بارگذاری شد`, 'success');
+                    } else {
+                        showToast('خطا در بارگذاری تنظیمات سنسور', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading sensor settings:', error);
+                    showToast('خطا در بارگذاری تنظیمات سنسور', 'error');
+                });
+        }
+        
+        function switchSensor(sensorId) {
+            fetch('/view/sensors/switch/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ sensor_id: sensorId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentSensorId = sensorId;
+                    // Load settings for the new sensor without page reload
+                    loadSensorSettings(sensorId);
+                } else {
+                    showToast('خطا در تغییر سنسور: ' + (data.error || 'خطای نامشخص'), 'error');
+                    // Revert selector to previous value
+                    const sensorSelector = document.getElementById('sensor-selector');
+                    if (sensorSelector) {
+                        sensorSelector.value = currentSensorId;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error switching sensor:', error);
+                showToast('خطا در تغییر سنسور', 'error');
+                // Revert selector to previous value
+                const sensorSelector = document.getElementById('sensor-selector');
+                if (sensorSelector) {
+                    sensorSelector.value = currentSensorId;
+                }
+            });
+        }
+        
+        function addSensor(name, endpoint) {
+            fetch('/view/sensors/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ name: name, api_endpoint: endpoint })
+            })
+            .then(response => {
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    return response.text().then(text => {
+                        console.error('Non-JSON response:', text);
+                        throw new Error('Server returned non-JSON response. Check console for details.');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('سنسور با موفقیت افزوده شد');
+                    location.reload();
+                } else {
+                    alert('خطا در افزودن سنسور: ' + (data.error || 'خطای نامشخص'));
+                }
+            })
+            .catch(error => {
+                console.error('Error adding sensor:', error);
+                alert('خطا در افزودن سنسور: ' + error.message);
+            });
+        }
+        
+        // Sensor selector event handlers
+        document.addEventListener('DOMContentLoaded', function() {
+            const sensorSelector = document.getElementById('sensor-selector');
+            const addSensorBtn = document.getElementById('add-sensor-btn');
+            const addSensorForm = document.getElementById('add-sensor-form');
+            const saveSensorBtn = document.getElementById('save-sensor-btn');
+            const cancelSensorBtn = document.getElementById('cancel-sensor-btn');
+            
+            if (sensorSelector) {
+                sensorSelector.addEventListener('change', function() {
+                    const newSensorId = parseInt(this.value);
+                    if (newSensorId !== currentSensorId) {
+                        switchSensor(newSensorId);
+                    }
+                });
+            }
+            
+            if (addSensorBtn) {
+                addSensorBtn.addEventListener('click', function() {
+                    addSensorForm.style.display = addSensorForm.style.display === 'none' ? 'block' : 'none';
+                });
+            }
+            
+            if (saveSensorBtn) {
+                saveSensorBtn.addEventListener('click', function() {
+                    const name = document.getElementById('new-sensor-name').value;
+                    const endpoint = document.getElementById('new-sensor-endpoint').value;
+                    if (name && endpoint) {
+                        addSensor(name, endpoint);
+                    } else {
+                        alert('لطفا نام و آدرس API را وارد کنید');
+                    }
+                });
+            }
+            
+            if (cancelSensorBtn) {
+                cancelSensorBtn.addEventListener('click', function() {
+                    addSensorForm.style.display = 'none';
+                    document.getElementById('new-sensor-name').value = '';
+                    document.getElementById('new-sensor-endpoint').value = '';
+                });
+            }
+        });
+        function isElementVisible(el) {
+            return !!(el && el.offsetParent !== null && getComputedStyle(el).display !== 'none');
+        }
+
+        // Settings popup functions
+        function openSettings() {
+            const backdrop = document.getElementById("settings-backdrop");
+            backdrop.classList.add("show");
+            backdrop.style.display = "flex";
+            updateFormulaExamples(); // Update examples when settings are opened
+        }
+
+        function closeSettings() {
+            const backdrop = document.getElementById("settings-backdrop");
+            backdrop.classList.remove("show");
+            backdrop.style.display = "none";
+        }
+
+        // Close popup when clicking outside
+        document.getElementById("settings-backdrop").addEventListener("click", function(e) {
+            if (e.target === this) {
+                closeSettings();
+            }
+        });
+
+        // Close popup with Escape key
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape") {
+                closeSettings();
+            }
+        });
+
+        function getBaseWidth() {
+            const currentSensorId = firstActiveSensorId || getSensorId();
+            const imgEl = document.getElementById(`Thermal_Img_${currentSensorId}`);
+            const imagePanel = document.querySelector(`.image-panel[data-sensor-id="${currentSensorId}"]`);
+            const imagePanelVisible = imagePanel ? isElementVisible(imagePanel) : false;
+            if (imagePanelVisible && imgEl && imgEl.clientWidth > 0) return imgEl.clientWidth;
+            const probesWrap = document.querySelector(`.probes-container[data-sensor-id="${currentSensorId}"]`);
+            const parent = probesWrap ? probesWrap.parentElement : null;
+            return parent ? parent.clientWidth : window.innerWidth;
+        }
+        
+        function triggerAlarm() {
+            if (!alarmActive) {
+                alarmActive = true;
+                // Get probes-container for first active sensor (alarm is global, but we need an element to style)
+                const firstSensorId = firstActiveSensorId || getSensorId();
+                const humidityBox = document.querySelector(`.probes-container[data-sensor-id="${firstSensorId}"]`);
+                
+                // Make humidity indicator red and blinking (if element exists)
+                if (humidityBox) {
+                    humidityBox.classList.add("alarm-mode");
+                }
+                
+                // Update status bar to alarm state
+                setSystemStatus('alarm', 'سیستم دستی -دما خارج از محدوده', '⚠');
+                
+                // Play alarm sound (placeholder - user will connect music)
+                // To add alarm sound, set alarmSound = new Audio('path/to/sound.mp3') in initialization
+                if (alarmSound) {
+                    //alarmSound.play().catch(e => console.log("Could not play alarm sound:", e));
+                }
+                
+            }
+        }
+        
+        function clearAlarm() {
+            if (alarmActive) {
+                alarmActive = false;
+                // Get probes-container for first active sensor (alarm is global, but we need an element to style)
+                const firstSensorId = firstActiveSensorId || getSensorId();
+                const humidityBox = document.querySelector(`.probes-container[data-sensor-id="${firstSensorId}"]`);
+                
+                // Remove alarm styling from humidity indicator (if element exists)
+                if (humidityBox) {
+                    humidityBox.classList.remove("alarm-mode");
+                }
+                
+                // Update status bar to normal state
+                setSystemStatus('normal', 'سیستم فعال', '✓');
+                showToast("سیستم فعال شد.", "success");
+            }
+        }
+        
+        function setSystemStatus(type, message, icon) {
+            const statusIndicator = document.getElementById("status-indicator");
+            const statusText = document.getElementById("status-text");
+            const statusIcon = document.getElementById("status-icon");
+            
+            // Remove all status classes
+            statusIndicator.className = "status-indicator";
+            
+            // Add specific status class
+            if (type === 'alarm') {
+                statusIndicator.classList.add('alarm');
+            } else if (type === 'warning') {
+                statusIndicator.classList.add('warning');
+            }
+            // Update text and icon
+            statusText.textContent = message;
+            statusIcon.textContent = icon;
+        }
+        
+        function startUpdating() {
+            if (intervalId !== null) clearInterval(intervalId);
+            
+            // Update status to show system is running
+            if (!alarmActive) {
+                setSystemStatus('normal', 'سیستم فعال', '▶');
+            }
+            
+            intervalId = setInterval(() => {
+                // Load thermal maps for all active sensors
+                const sensorIds = Object.keys(allSensorsData || {}).map(id => parseInt(id));
+                if (sensorIds.length === 0) {
+                    // Fallback to first active sensor if allSensorsData not loaded yet
+                    const sensorId = firstActiveSensorId || getSensorId();
+                    loadThermalMapForSensor(sensorId);
+                    create_humidity_chart_svg(sensorId)
+                } else {
+                    // Load thermal map for each active sensor
+                    sensorIds.forEach(sensorId => {
+                        loadThermalMapForSensor(sensorId);
+                        create_humidity_chart_svg(sensorId)
+                    });
+                }
+                
+                const unknown_devices_form = document.getElementById('unknown_devices_form');
+                updateEdgeDisplay();
+            }, 1000);
+        }
+        
+        // Load thermal map for a specific sensor
+        function loadThermalMapForSensor(sensorId) {
+            if (!sensorId) return;
+            
+            const Thermal_Img = document.getElementById(`Thermal_Img_${sensorId}`);
+            if (Thermal_Img) {
+                Thermal_Img.src = `/static/thermal_image_${sensorId}.jpg?` + new Date().getTime();
+            }
+            const txtFileUrl = `/static/thermal_map_${sensorId}.txt?` + new Date().getTime();
+            
+            // Get base width from first active sensor (for cell calculations)
+            imgWidth = getBaseWidth();
+            if (Thermal_Img) {
+                imgHeight = Thermal_Img.clientHeight;
+            }
+            cellWidth = imgWidth / cols;
+            cellHeight = imgHeight / rows;
+
+            fetch(txtFileUrl)
+                .then(response => response.text())
+                .then(text => {
+                    // Update temperature grid for this sensor
+                    const container = document.querySelector(`.temperature-grid[data-sensor-id="${sensorId}"]`);
+                    if (!container) return;
+                    
+                    // Initialize gridData for this sensor
+                    if (!gridDataBySensor[sensorId]) {
+                        gridDataBySensor[sensorId] = [];
+                    }
+                    const gridData = gridDataBySensor[sensorId];
+                    
+                    const rowsData = text.trim().split("\n");
+                    container.innerHTML = "";
+                    container.dataset.sensorId = sensorId; // Store sensor ID
+                    rowsData.forEach((rowData, rowIndex) => {
+                        const values = rowData.split(",");
+                        gridData[rowIndex] = [];
+
+                        values.forEach((temp, colIndex) => {
+                            const val = parseFloat(temp);
+                            gridData[rowIndex][colIndex] = val;
+
+                            const div = document.createElement("div");
+                            div.className = "cell";
+                            div.textContent = val.toFixed(1);
+                            div.dataset.row = rowIndex;
+                            div.dataset.col = colIndex;
+
+                            div.addEventListener("mouseenter", () => {
+                                // Get sensor ID from container
+                                const cellSensorId = container.dataset.sensorId;
+                                if (!cellSensorId) return;
+                                highlightNeighbors(rowIndex, colIndex, cellSensorId);
+                                const avg = computeAverageAround(rowIndex, colIndex, cellSensorId);
+                                const humidity = HumidityCalculation(avg);
+                                const humidityBox = document.querySelector(`.humidity-box[data-sensor-id="${cellSensorId}"]`);
+                                const infoBox = document.querySelector(`.info-box[data-sensor-id="${cellSensorId}"]`);
+                                if (humidityBox) humidityBox.textContent = `${humidity.toFixed(2)} %`;
+                                if (infoBox) infoBox.textContent = `${avg.toFixed(2)} °C`;
+                                highlightOnImage(rowIndex, colIndex, cellSensorId);
+                            });
+
+                            div.addEventListener("mouseleave", () => {
+                                //removeHighlights();
+                                //removeHighlightFromImage();
+                            });
+
+                            container.appendChild(div);
+                        });
+                    });
+
+                    if (lastHovered && lastHovered.sensorId == container.dataset.sensorId) {
+                        const { row, col } = lastHovered;
+                        const hoverSensorId = container.dataset.sensorId;
+                        const avg = computeAverageAround(row, col, hoverSensorId);
+                        const humidity = HumidityCalculation(avg);
+                        const humidityBox = document.querySelector(`.humidity-box[data-sensor-id="${hoverSensorId}"]`);
+                        const infoBox = document.querySelector(`.info-box[data-sensor-id="${hoverSensorId}"]`);
+                        if (humidityBox) humidityBox.textContent = `${humidity.toFixed(2)} %`;
+                        if (infoBox) infoBox.textContent = `${avg.toFixed(2)} °C`;
+                        highlightNeighbors(row, col, hoverSensorId);
+                        highlightOnImage(row, col, hoverSensorId);
+                    }
+
+                    // Update probes for this sensor after loading grid data
+                    if (probePointsBySensor[sensorId] && probePointsBySensor[sensorId].length > 0) {
+                        updateProbesForSensor(sensorId);
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error loading thermal map for sensor ${sensorId}:`, error);
+                });
+        }
+
+        function computeAverageAround(row, col, sensorId) {
+            sensorId = sensorId || firstActiveSensorId || getSensorId();
+            const gridData = gridDataBySensor[sensorId] || [];
+            if (!gridData.length) return 0;
+            
+            let sum = 0, count = 0;
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    const r = row + dr;
+                    const c = col + dc;
+                    if (r >= 0 && r < rows && c >= 0 && c < cols && gridData[r] && gridData[r][c] !== undefined) {
+                        sum += gridData[r][c];
+                        count++;
+                    }
+                }
+            }
+            return count > 0 ? sum / count : 0;
+        }
+
+        function highlightOnImage(row, col, sensorId) {
+            sensorId = sensorId || firstActiveSensorId || getSensorId();
+            const box = document.querySelector(`.highlight-box[data-sensor-id="${sensorId}"]`);
+            if (box) {
+                // Ensure cellWidth and cellHeight are calculated
+                if (!cellWidth || !cellHeight || isNaN(cellWidth) || isNaN(cellHeight)) {
+                    const Thermal_Img = document.getElementById(`Thermal_Img_${sensorId}`);
+                    if (Thermal_Img) {
+                        imgWidth = Thermal_Img.clientWidth || getBaseWidth();
+                        imgHeight = Thermal_Img.clientHeight || Thermal_Img.naturalHeight;
+                        if (imgWidth > 0 && imgHeight > 0) {
+                            cellWidth = imgWidth / cols;
+                            cellHeight = imgHeight / rows;
+                        }
+                    }
+                }
+                
+                // Only proceed if we have valid dimensions
+                if (cellWidth && cellHeight && !isNaN(cellWidth) && !isNaN(cellHeight)) {
+                    box.style.left = `${col * cellWidth}px`;
+                    box.style.top = `${row * cellHeight}px`;
+                    box.style.width = `${cellWidth}px`;
+                    box.style.height = `${cellHeight}px`;
+                    box.style.display = "block";
+                }
+            }
+        }
+
+        function removeHighlightFromImage(sensorId) {
+            sensorId = sensorId || firstActiveSensorId || getSensorId();
+            const box = document.querySelector(`.highlight-box[data-sensor-id="${sensorId}"]`);
+            if (box) {
+                box.style.display = "none";
+            }
+        }
+
+        function highlightNeighbors(row, col, sensorId) {
+            sensorId = sensorId || firstActiveSensorId || getSensorId();
+            removeHighlights(sensorId);
+            const container = document.querySelector(`.temperature-grid[data-sensor-id="${sensorId}"]`);
+            if (!container) return;
+            
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    const r = row + dr;
+                    const c = col + dc;
+                    if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                        const cell = container.querySelector(`.cell[data-row='${r}'][data-col='${c}']`);
+                        if (cell) {
+                            cell.classList.add("highlight");
+                            highlightedCells.push(cell);
+                        }
+                    }
+                }
+            }
+        }
+
+        function removeHighlights(sensorId) {
+            sensorId = sensorId || firstActiveSensorId || getSensorId();
+            const container = document.querySelector(`.temperature-grid[data-sensor-id="${sensorId}"]`);
+            if (container) {
+                container.querySelectorAll(".cell.highlight").forEach(cell => {
+                    cell.classList.remove("highlight");
+                });
+            }
+            // Remove cells for this sensor from highlightedCells array
+            highlightedCells = highlightedCells.filter(cell => {
+                const cellContainer = cell.closest('.temperature-grid');
+                return !cellContainer || cellContainer.dataset.sensorId != sensorId;
+            });
+        }
+
+        // Setup image click handlers for all sensors
+        function setupImageClickHandlers() {
+            document.querySelectorAll('.Thermal_Img').forEach(img => {
+                const imgSensorId = img.dataset.sensorId;
+                if (!imgSensorId) return;
+                
+                // Remove existing listener by cloning
+                const newImg = img.cloneNode(true);
+                img.parentNode.replaceChild(newImg, img);
+                
+                newImg.addEventListener("mousedown", function (e) {
+                    const rect = this.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    // Ensure cellWidth and cellHeight are calculated for this sensor
+                    if (!cellWidth || !cellHeight || isNaN(cellWidth) || isNaN(cellHeight)) {
+                        const imgWidth = this.clientWidth || rect.width;
+                        const imgHeight = this.clientHeight || rect.height;
+                        if (imgWidth > 0 && imgHeight > 0) {
+                            cellWidth = imgWidth / cols;
+                            cellHeight = imgHeight / rows;
+                        }
+                    }
+                    
+                    const col = Math.floor(x / cellWidth);
+                    const row = Math.floor(y / cellHeight);
+
+                    if (row >= 0 && row < rows && col >= 0 && col < cols && cellWidth && cellHeight) {
+                        lastHovered = { row, col, sensorId: imgSensorId };
+                        LastPointSelected = lastHovered;
+                        const avg = computeAverageAround(row, col, imgSensorId);
+                        const humidity = HumidityCalculation(avg);
+                        
+                        const humidityBox = document.querySelector(`.humidity-box[data-sensor-id="${imgSensorId}"]`);
+                        const infoBox = document.querySelector(`.info-box[data-sensor-id="${imgSensorId}"]`);
+                        if (humidityBox) humidityBox.textContent = `${humidity.toFixed(2)} %`;
+                        if (infoBox) infoBox.textContent = `${avg.toFixed(2)} °C`;
+                        
+                        // Show humidity input section when a point is clicked
+                        const humidityInputSection = document.querySelector(`.humidity_input_section[data-sensor-id="${imgSensorId}"]`);
+                        if (humidityInputSection) {
+                            humidityInputSection.style.display = "flex";
+                            humidityInputSection.style.gap = "4px";
+                            humidityInputSection.style.alignItems = "center";
+                        }
+                        
+                        highlightNeighbors(row, col, imgSensorId);
+                        highlightOnImage(row, col, imgSensorId);
+                    }
+                });
+            });
+            
+            // Setup mouseleave handlers for image panels
+            document.querySelectorAll('.image-panel').forEach(panel => {
+                const panelSensorId = panel.dataset.sensorId;
+                if (!panelSensorId) return;
+                
+                panel.addEventListener("mouseleave", () => {
+                    removeHighlights(panelSensorId);
+                    removeHighlightFromImage(panelSensorId);
+                    if (lastHovered && lastHovered.sensorId == panelSensorId) {
+                        lastHovered = null;
+                    }
+                    
+                    // Keep humidity input section visible if a point was selected
+                    if (!LastPointSelected || LastPointSelected.sensorId != panelSensorId) {
+                        const humidityInputSection = document.querySelector(`.humidity_input_section[data-sensor-id="${panelSensorId}"]`);
+                        if (humidityInputSection) {
+                            humidityInputSection.style.display = "none";
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Initialize image handlers after DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupImageClickHandlers);
+        } else {
+            setupImageClickHandlers();
+        }
+
+        function togglePause() {
+            if (isPaused) {
+                startUpdating();
+                document.getElementById("pause-btn").textContent = "توقف";
+                isPaused = false;
+                setSystemStatus('normal', 'سیستم فعال', '▶');
+                
+                // Show saved points when starting updates
+                savedPointsVisible = true;
+                savedPointMarkers.forEach(marker => {
+                    marker.style.display = 'flex';
+                });
+                const btn = document.getElementById('toggle-saved-points-btn');
+                if (btn) {
+                    btn.textContent = 'پنهان کردن رطوبت های دستی';
+                }
+                showToast("سیستم فعال شد.", "success");
+            } else {
+                clearInterval(intervalId);
+                document.getElementById("pause-btn").textContent = "ادامه";
+                isPaused = true;
+                setSystemStatus('warning', 'سیستم متوقف', '⏸');
+                showToast("سیستم متوقف شد.", "warning");
+            }
+        }
+
+        let savedPointsVisible = false;
+        let savedPointMarkers = [];
+
+        function saveHumidityValue(sensorId) {
+            sensorId = sensorId || (LastPointSelected && LastPointSelected.sensorId) || firstActiveSensorId || getSensorId();
+            
+            if (!LastPointSelected || LastPointSelected.sensorId != sensorId) {
+                showToast("لطفا ابتدا یک نقطه را انتخاب کنید.", "warning");
+                return;
+            }
+
+            const { row, col } = LastPointSelected;
+            const infoBox = document.querySelector(`.info-box[data-sensor-id="${sensorId}"]`);
+            const tempText = infoBox ? infoBox.textContent : "0 °C";
+            const temp = parseFloat(tempText.replace(" °C", ""));
+            const humidityInput = document.querySelector(`.humidity-input[data-sensor-id="${sensorId}"]`);
+            const humidityValue = humidityInput ? humidityInput.value : "";
+
+            if (!humidityValue || humidityValue === "") {
+                showToast("لطفا مقدار رطوبت را وارد کنید.", "warning");
+                return;
+            }
+
+            // Create form data
+            const formData = new FormData();
+            formData.append('temp', temp.toFixed(1));
+            formData.append('value', humidityValue);
+            formData.append('x', col);
+            formData.append('y', row);
+            formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+            fetch("/view/save-input/", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "ok") {
+                    showToast(`ذخیره شد: دما ${data.temp}°C ← رطوبت ${data.value}% در (${data.x}, ${data.y})`, "success");
+                    humidityInput.value = ""; // Clear input
+                    // Add visual marker for the saved point (sensorId already defined as parameter)
+                    addSavedPointMarker(data.temp, data.value, col, row, sensorId);
+                } else {
+                    showToast("خطا در ذخیره سازی.", "error");
+                }
+            })
+            .catch(error => {
+                showToast("خطا: " + error, "error");
+            });
+        }
+
+        function addSavedPointMarker(temp, humidity, x, y, sensorId) {
+            sensorId = sensorId || firstActiveSensorId || getSensorId();
+            const imgWrap = document.querySelector(`.image-wrap[data-sensor-id="${sensorId}"]`);
+            const img = document.getElementById(`Thermal_Img_${sensorId}`);
+            
+            if (!imgWrap || !img) return;
+
+            // Calculate position based on grid
+            const rect = img.getBoundingClientRect();
+            const left = (x * cellWidth) + (cellWidth / 2);
+            const top = (y * cellHeight) + (cellHeight / 2);
+
+            // Create marker element
+            const marker = document.createElement('div');
+            // Store sensor ID on marker
+            marker.dataset.sensorId = sensorId;
+            marker.className = 'saved-point-marker';
+            marker.style.left = `${left}px`;
+            marker.style.top = `${top}px`;
+            marker.style.transform = 'translate(-50%, -50%)';
+            marker.dataset.temp = temp;
+            marker.dataset.humidity = humidity;
+            marker.dataset.x = x;
+            marker.dataset.y = y;
+
+            // Create info tooltip
+            const info = document.createElement('div');
+            info.className = 'saved-point-info';
+            info.innerHTML = `دما: ${temp}°C<br>رطوبت: ${humidity}%`;
+            marker.appendChild(info);
+
+            // Click marker to open edit modal
+            marker.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openEditModal(temp, humidity, x, y, marker);
+            });
+
+            imgWrap.appendChild(marker);
+            savedPointMarkers.push(marker);
+            
+            // Apply current visibility state
+            marker.style.display = savedPointsVisible ? 'flex' : 'none';
+        }
+
+        function deleteSavedPoint(temp, markerElement) {
+            const formData = new FormData();
+            formData.append('temp', temp);
+            formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+            
+            fetch("/view/delete-saved-point/", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "ok") {
+                    showToast('نقطه حذف شد', 'success');
+                    markerElement.remove();
+                    const index = savedPointMarkers.indexOf(markerElement);
+                    if (index > -1) {
+                        savedPointMarkers.splice(index, 1);
+                    }
+                } else {
+                    showToast('خطا در حذف.', 'error');
+                }
+            })
+            .catch(error => {
+                showToast('خطا: ' + error, 'error');
+            });
+        }
+
+        function toggleSavedPoints() {
+            // // Only allow toggling when paused
+            // if (!isPaused) {
+            //     showToast('برای تغییر وضعیت نمایش نقاط، ابتدا سیستم را متوقف کنید.', 'info');
+            //     return;
+            // }
+            
+            savedPointsVisible = !savedPointsVisible;
+            savedPointMarkers.forEach(marker => {
+                marker.style.display = savedPointsVisible ? 'flex' : 'none';
+            });
+            const btn = document.getElementById('toggle-saved-points-btn');
+            if (btn) {
+                btn.textContent = savedPointsVisible ? 'پنهان کردن رطوبت های دستی' : 'نمایش رطوبت های دستی';
+            }
+        }
+
+        function loadSavedPoints() {
+            // Load saved points from device_inputs.json via backend
+            fetch('/view/get-saved-inputs/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Clear existing markers
+                        savedPointMarkers.forEach(m => m.remove());
+                        savedPointMarkers = [];
+                        
+                        // Add markers for each saved point
+                        Object.keys(data.inputs).forEach(temp => {
+                            const value = data.inputs[temp];
+                            // Check if value has coordinates (new format)
+                            if (typeof value === 'object' && value.x !== undefined && value.y !== undefined) {
+                                // Use first active sensor for saved points (or get from value if stored)
+                                const savedSensorId = value.sensorId || firstActiveSensorId || getSensorId();
+                                addSavedPointMarker(temp, value.humidity, value.x, value.y, savedSensorId);
+                            }
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading saved points:', error);
+                });
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: '✓',
+                error: '✗',
+                warning: '⚠',
+                info: 'ℹ'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || icons.info}</div>
+                <div class="toast-content">${message}</div>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Edit Point Modal Functions
+        let currentEditingMarker = null;
+        let currentEditingTemp = null;
+
+        function openEditModal(temp, humidity, x, y, markerElement) {
+            const modal = document.getElementById('edit-point-modal');
+            if (!modal) return;
+            
+            currentEditingMarker = markerElement;
+            currentEditingTemp = temp;
+            
+            document.getElementById('edit-temp-value').value = temp;
+            document.getElementById('edit-humidity-value').value = humidity;
+            document.getElementById('edit-x-value').textContent = x;
+            document.getElementById('edit-y-value').textContent = y;
+            
+            modal.classList.add('active');
+            
+            // Close modal when clicking outside
+            setTimeout(() => {
+                modal.onclick = (e) => {
+                    if (e.target === modal) {
+                        closeEditModal();
+                    }
+                };
+            }, 100);
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('edit-point-modal');
+            if (modal) {
+                modal.classList.remove('active');
+                modal.onclick = null; // Remove event listener
+            }
+            currentEditingMarker = null;
+            currentEditingTemp = null;
+        }
+
+        // Close modal with ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('edit-point-modal');
+                if (modal && modal.classList.contains('active')) {
+                    closeEditModal();
+                }
+            }
+        });
+
+        function updateSavedPointFromModal() {
+            if (!currentEditingMarker || !currentEditingTemp) return;
+            
+            const newTemp = document.getElementById('edit-temp-value').value;
+            const newHumidity = document.getElementById('edit-humidity-value').value;
+            const x = currentEditingMarker.dataset.x;
+            const y = currentEditingMarker.dataset.y;
+            
+            if (!newHumidity || newHumidity === '') {
+                showToast('لطفا مقدار رطوبت را وارد کنید.', 'warning');
+                return;
+            }
+            
+            // Send update to backend
+            const formData = new FormData();
+            formData.append('old_temp', currentEditingTemp);
+            formData.append('temp', newTemp);
+            formData.append('value', newHumidity);
+            formData.append('x', x);
+            formData.append('y', y);
+            formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+            
+            fetch("/view/update-saved-point/", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "ok") {
+                    showToast(`بروزرسانی شد: دما ${data.temp}°C ← رطوبت ${data.value}%`, 'success');
+                    
+                    // Update marker
+                    currentEditingMarker.dataset.temp = newTemp;
+                    currentEditingMarker.dataset.humidity = newHumidity;
+                    currentEditingMarker.querySelector('.saved-point-info').innerHTML = 
+                        `دما: ${newTemp}°C<br>رطوبت: ${newHumidity}%`;
+                    
+                    closeEditModal();
+                } else {
+                    showToast('خطا در بروزرسانی.', 'error');
+                }
+            })
+            .catch(error => {
+                showToast('خطا: ' + error, 'error');
+            });
+        }
+
+        function deleteSavedPointFromModal() {
+            if (!currentEditingMarker || !currentEditingTemp) return;
+            
+            const formData = new FormData();
+            formData.append('temp', currentEditingTemp);
+            formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+            
+            fetch("/view/delete-saved-point/", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "ok") {
+                    showToast('نقطه حذف شد', 'success');
+                    
+                    // Remove marker
+                    currentEditingMarker.remove();
+                    const index = savedPointMarkers.indexOf(currentEditingMarker);
+                    if (index > -1) {
+                        savedPointMarkers.splice(index, 1);
+                    }
+                    
+                    closeEditModal();
+                } else {
+                    showToast('خطا در حذف.', 'error');
+                }
+            })
+            .catch(error => {
+                showToast('خطا: ' + error, 'error');
+            });
+        }
+
+        function getCookie(name) {
+            // For CSRF token, use the Django template variable first
+            if (name === 'csrftoken' && typeof csrfToken !== 'undefined' && csrfToken) {
+                return csrfToken;
+            }
+            
+            // Try to get from cookie
+            const cookie = document.cookie.split(';').find(c => c.trim().startsWith(name + '='));
+            if (cookie) {
+                return decodeURIComponent(cookie.split('=')[1]);
+            }
+            
+            // Fallback to meta tag for CSRF token
+            if (name === 'csrftoken') {
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                return metaTag ? metaTag.getAttribute('content') : null;
+            }
+            
+            return null;
+        }
+        
+        function refreshCSRFToken() {
+            // Make a simple GET request to refresh the CSRF token
+            fetch('/view/', {
+                method: 'GET',
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Update the csrfToken variable
+                    const newToken = getCookie('csrftoken');
+                    if (newToken) {
+                        window.csrfToken = newToken;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Failed to refresh CSRF token:', error);
+            });
+        }
+
+        function HumidityCalculation(temp) {
+            try {
+                return eval(formula.value.replace(/temp/g, `(${temp})`));
+            } catch (e) {
+                console.error("Invalid formula:", e);
+                return 0;
+            }
+        }
+
+        // Update formula examples in settings
+        function updateFormulaExamples() {
+            const exampleTemps = [50, 51.5, 53];
+            const exampleElements = [
+                document.querySelector('.example-humidity-1'),
+                document.querySelector('.example-humidity-2'),
+                document.querySelector('.example-humidity-3')
+            ];
+            
+            exampleTemps.forEach((temp, index) => {
+                if (exampleElements[index]) {
+                    try {
+                        const humidity = HumidityCalculation(temp);
+                        exampleElements[index].textContent = `${humidity.toFixed(2)}%`;
+                    } catch (e) {
+                        exampleElements[index].textContent = "خطا";
+                        exampleElements[index].style.color = "#ff6b6b";
+                    }
+                }
+            });
+        }
+
+
+
+        function updateProbeConfiguration(sensorId = null) {
+            // If sensorId not provided, use current selected sensor
+            if (!sensorId) {
+                sensorId = getSensorId();
+            }
+            
+            const probePoints = probePointsBySensor[sensorId] || [];
+            if (!probePoints.length) {
+                console.log(`[updateProbeConfiguration] No probe points for sensor ${sensorId}`);
+                return;
+            }
+            
+            // Get checked probes
+            const checkedProbes = [];
+            for (let i = 0; i < probePoints.length; i++) {
+                if (probePoints[i].checkbox && probePoints[i].checkbox.checked) {
+                    checkedProbes.push(i + 1); // Probe IDs start from 1
+                }
+            }
+            
+            // Prepare probe configuration data
+            const probesData = {};
+            let is_data_correct = true;
+            const edgeData = edgeDataBySensor[sensorId];
+            for (let i = 0; i < probePoints.length; i++) {
+                const p = probePoints[i];
+                if (edgeData && edgeData.is_detected && edgeData.start_col !== null) {
+                    if (p.col < edgeData.start_col) {
+                        is_data_correct = false
+                        console.log("hereeeeee 000")
+                    }
+                } else {
+                    if (p.col < 2) {
+                        is_data_correct = false;
+                        console.log("hereeeeee 111")
+                    }
+                }
+                probesData[`probe${i + 1}`] = {
+                    x: p.col_on_image || p.col,
+                    y: p.row
+                };
+            }
+            
+            if (!is_data_correct) {
+                console.log(`[updateProbeConfiguration] Probe data is not correct for sensor ${sensorId}`)
+                return;
+            }
+
+            // Prepare data to send
+            const configData = {
+                sensor_id: sensorId,
+                active_formula: formula.value,
+                probes_data: probesData,
+                checked_probes: checkedProbes
+            };
+            
+            // Get CSRF token
+            let csrfToken = getCookie('csrftoken');
+            if (!csrfToken) {
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                if (metaTag) {
+                    csrfToken = metaTag.getAttribute('content');
+                }
+            }
+            
+            if (!csrfToken) {
+                return;
+            }
+            
+            console.log(`[updateProbeConfiguration] Updating config for sensor ${sensorId}: ${probePoints.length} probes, ${checkedProbes.length} checked`);
+            
+            // Send configuration update to backend with correct sensor ID
+            fetch('/view/update-probe-config/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify(configData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update average display with server-calculated data
+                    if (data.average_data) {
+                        const avgDisplayInput = document.getElementById("average-display-input");
+                        avgDisplayInput.value = `${data.average_data.temperature} °C -- ${data.average_data.humidity} %`;
+                    }
+                    // Auto-save probe data after configuration update
+                    // setTimeout(autoSaveProbeData, 1000);
+                } else {
+                }
+            })
+            .catch(error => {
+                console.error('Network error updating probe configuration:', error);
+            });
+        }
+
+        // Create N probe elements, evenly spaced across image width, centered vertically
+        function createProbes(count, sensorId) {
+            if (!sensorId) {
+                sensorId = firstActiveSensorId || getSensorId();
+            }
+            
+            // Remove only prob-hilight for this sensor
+            const sensorImagePanel = document.querySelector(`.image-panel[data-sensor-id="${sensorId}"]`);
+            if (sensorImagePanel) {
+                sensorImagePanel.querySelectorAll('.prob-hilight').forEach(el => el.remove());
+            }
+            
+            // Get probes container for this sensor
+            const wrap = document.querySelector(`.probes-container[data-sensor-id="${sensorId}"]`);
+            if (!wrap) {
+                console.error('Probes container not found for sensor:', sensorId);
+                return;
+            }
+            wrap.innerHTML = "";
+            
+            console.log(`[createProbes] Creating ${count} probes for sensor ${sensorId}`);
+            
+            // Initialize probe points array for this sensor
+            if (!probePointsBySensor[sensorId]) {
+                probePointsBySensor[sensorId] = [];
+            }
+            probePointsBySensor[sensorId] = [];
+            
+            // Update global probePoints for backward compatibility (first active sensor)
+            if (sensorId === firstActiveSensorId) {
+                probePoints = probePointsBySensor[sensorId];
+            }
+            numProbes = Math.max(0, parseInt(count || 0));
+            if (!numProbes) {
+                console.log(`[createProbes] No probes to create for sensor ${sensorId} (count: ${count})`);
+                return;
+            }
+
+            const targetRow = Math.floor(rows / 2);
+            
+            // Calculate the range for probe placement
+            let startCol = 0;
+            let endCol = cols;
+            
+            // Use edge detection data from backend if available (for this sensor)
+            const edgeData = edgeDataBySensor[sensorId];
+            if (edgeData && edgeData.is_detected && edgeData.start_col !== null && edgeData.end_col !== null) {
+                startCol = edgeData.start_col;
+                endCol = edgeData.end_col;
+            }
+            
+            const rangeWidth = endCol - startCol;
+            
+            // sensorImagePanel already defined above, reuse it
+            const imageWrap = sensorImagePanel ? sensorImagePanel.querySelector('.image-wrap') : null;
+            
+            for (let i = 0; i < numProbes; i++) {
+                const targetCol = Math.floor(startCol + ((i + 0.5) * rangeWidth) / numProbes);
+
+                const card = document.createElement("div");
+                card.className = "probe-card";
+
+                // Add checkbox for each probe
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.className = "probe-checkbox";
+                checkbox.checked = true; // Default to checked
+                checkbox.dataset.probeIndex = i;
+                checkbox.addEventListener("change", () => {
+                    updateAverageDisplay();
+                    updateProbeConfiguration(sensorId); // Update server when checkboxes change
+                }); 
+
+                const title = document.createElement("div");
+                title.className = "probe-title";
+                //title.textContent = `${i + 1}`;
+                const hum = document.createElement("div");
+                hum.className = "probe-humidity";
+                hum.textContent = "0 %";
+                const humrealvalue = document.createElement("div");
+                humrealvalue.className = "probe-real-value";
+                humrealvalue.textContent = "0 %";
+                const tmp = document.createElement("div");
+                tmp.className = "probe-temp";
+                tmp.textContent = "0 °C";
+
+                card.appendChild(checkbox);
+                card.appendChild(title);
+                card.appendChild(hum);
+                card.appendChild(humrealvalue);
+                card.appendChild(tmp);
+                wrap.appendChild(card);
+                
+                // Store probe point with sensor ID
+                const probePoint = { 
+                    row: targetRow, 
+                    col: targetCol,
+                    col_on_image: targetCol,
+                    cardEl: card, 
+                    humEl: hum, 
+                    humrealvalue: humrealvalue,
+                    tempEl: tmp,
+                    checkbox: checkbox,
+                    index: i,
+                    sensorId: sensorId
+                };
+                probePointsBySensor[sensorId].push(probePoint);
+                
+                // Update global probePoints for backward compatibility (first active sensor)
+                if (sensorId === firstActiveSensorId) {
+                    probePoints = probePointsBySensor[sensorId];
+                }
+            }
+            
+            // Update probes for this sensor
+            updateProbesForSensor(sensorId);
+            
+            // Update probe configuration in database for this sensor
+            updateProbeConfiguration(sensorId);
+            if (sensorId === firstActiveSensorId) {
+                updateAverageDisplay();
+            }
+        }
+
+        // Current edge data from backend - per sensor
+        const edgeDataBySensor = {};
+        let isDraggingEdge = false;
+        let draggingEdgeType = null; // 'start' or 'end'
+        
+        // Display edge points from backend data for a specific sensor
+        function displayEdgePoints(edgeData, sensorId) {
+            if (!sensorId) {
+                sensorId = firstActiveSensorId || getSensorId();
+            }
+            
+            // Remove only edge points for this sensor
+            const sensorImagePanel = document.querySelector(`.image-panel[data-sensor-id="${sensorId}"]`);
+            if (sensorImagePanel) {
+                sensorImagePanel.querySelectorAll('.edge-point').forEach(el => el.remove());
+            }
+            
+            if (!edgeData) return;
+            
+            const container = sensorImagePanel ? sensorImagePanel.querySelector('.image-wrap') : null;
+            if (!container) return;
+            
+            // Get sensor-specific find_edge_by_threshold setting (for now use global, can be made per-sensor later)
+            const isManualMode = !find_edge_by_threshold;
+            
+            // In manual mode, always show lines (even if not detected yet)
+            if (isManualMode) {
+                const startCol = edgeData.start_col ?? Math.floor(cols * 0.2);
+                const endCol = edgeData.end_col ?? Math.floor(cols * 0.8);
+                
+                // Create draggable start line
+                const startPoint = createEdgeLine(startCol, 'start', true, sensorId);
+                container.appendChild(startPoint);
+                
+                // Create draggable end line
+                const endPoint = createEdgeLine(endCol, 'end', true, sensorId);
+                container.appendChild(endPoint);
+            } else {
+                // Automatic mode - only show if detected
+                if (!edgeData.is_detected) return;
+                
+                if (edgeData.start_col !== null) {
+                    const startPoint = createEdgeLine(edgeData.start_col, 'start', false, sensorId);
+                    container.appendChild(startPoint);
+                }
+                
+                if (edgeData.end_col !== null) {
+                    const endPoint = createEdgeLine(edgeData.end_col, 'end', false, sensorId);
+                    container.appendChild(endPoint);
+                }
+            }
+        }
+        
+        // Create edge line element
+        function createEdgeLine(col, type, isDraggable, sensorId) {
+            const line = document.createElement("div");
+            line.className = "edge-point" + (isDraggable ? " draggable" : "");
+            line.dataset.edgeType = type;
+            line.dataset.sensorId = sensorId; // Store sensor ID on edge line
+            line.style.left = `${col * cellWidth}px`;
+            
+            if (isDraggable) {
+                line.addEventListener('mousedown', (e) => startEdgeDrag(e, sensorId));
+                line.addEventListener('touchstart', (e) => startEdgeDrag(e, sensorId), { passive: false });
+            }
+            return line;
+        }
+        
+        // Track which sensor is being dragged
+        let draggingSensorId = null;
+        
+        // Start dragging edge line
+        function startEdgeDrag(e, sensorId) {
+            if (find_edge_by_threshold) return;
+            e.preventDefault();
+            isDraggingEdge = true;
+            draggingEdgeType = e.target.dataset.edgeType;
+            draggingSensorId = sensorId || e.target.dataset.sensorId;
+            e.target.classList.add('dragging');
+            
+            document.addEventListener('mousemove', dragEdge);
+            document.addEventListener('mouseup', stopEdgeDrag);
+            document.addEventListener('touchmove', dragEdge, { passive: false });
+            document.addEventListener('touchend', stopEdgeDrag);
+        }
+        
+        // Drag edge line
+        function dragEdge(e) {
+            if (!isDraggingEdge || !draggingSensorId) return;
+            e.preventDefault();
+            
+            const sensorImagePanel = document.querySelector(`.image-panel[data-sensor-id="${draggingSensorId}"]`);
+            const container = sensorImagePanel ? sensorImagePanel.querySelector('.image-wrap') : null;
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let x = clientX - rect.left;
+            
+            // Clamp within bounds
+            x = Math.max(0, Math.min(x, rect.width));
+            const col = Math.round(x / cellWidth);
+            
+            // Update line position visually (only for the dragging sensor)
+            const line = document.querySelector(`.edge-point.dragging[data-sensor-id="${draggingSensorId}"]`);
+            if (line) {
+                line.style.left = `${col * cellWidth}px`;
+            }
+        }
+        
+        // Stop dragging and save position
+        function stopEdgeDrag(e) {
+            if (!isDraggingEdge || !draggingSensorId) return;
+            isDraggingEdge = false;
+            
+            const line = document.querySelector(`.edge-point.dragging[data-sensor-id="${draggingSensorId}"]`);
+            if (line) {
+                line.classList.remove('dragging');
+                const col = Math.round(parseFloat(line.style.left) / cellWidth);
+                saveManualEdgePosition(draggingEdgeType, col, draggingSensorId);
+            }
+            
+            draggingEdgeType = null;
+            draggingSensorId = null;
+            document.removeEventListener('mousemove', dragEdge);
+            document.removeEventListener('mouseup', stopEdgeDrag);
+            document.removeEventListener('touchmove', dragEdge);
+            document.removeEventListener('touchend', stopEdgeDrag);
+        }
+        
+        // Save manual edge position to backend
+        function saveManualEdgePosition(type, col, sensorId) {
+            if (!sensorId) {
+                sensorId = firstActiveSensorId || getSensorId();
+            }
+            
+            const data = {};
+            data[type + '_col'] = col;
+            data.sensor_id = sensorId;
+            
+            // Update local edge data for this sensor
+            if (!edgeDataBySensor[sensorId]) {
+                edgeDataBySensor[sensorId] = {};
+            }
+            edgeDataBySensor[sensorId][type + '_col'] = col;
+            edgeDataBySensor[sensorId].is_detected = 
+                edgeDataBySensor[sensorId].start_col != null && 
+                edgeDataBySensor[sensorId].end_col != null;
+            
+            fetch('/view/update-manual-edge-positions/', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast(`موقعیت لبه ${type === 'start' ? 'شروع' : 'پایان'} ذخیره شد`, 'success');
+                }
+            })
+            .catch(error => console.error('Error saving edge position:', error));
+        }
+        
+        // Fetch edge data from backend and display for all sensors
+        function updateEdgeDisplay() {
+            // Update edges for all sensors that have edge data
+            Object.keys(edgeDataBySensor).forEach(sensorId => {
+                displayEdgePoints(edgeDataBySensor[sensorId], parseInt(sensorId));
+            });
+        }
+        // ___________ End of edge display ________________
+        // ___________ Start of roll number (manual edit mode) ________________
+        let isRollEditMode = false;
+        
+        function toggleRollEditMode() {
+            const rollInput = document.getElementById("roll-number");
+            const editBtn = document.getElementById("roll-edit-btn");
+            
+            if (!isRollEditMode) {
+                // Enter edit mode
+                isRollEditMode = true;
+                rollInput.removeAttribute('readonly');
+                rollInput.style.borderColor = 'var(--accent)';
+                editBtn.textContent = 'ذخیره';
+                editBtn.style.background = '#22c55e';
+            } else {
+                // Save and exit edit mode
+                saveRollNumber();
+                isRollEditMode = false;
+                rollInput.setAttribute('readonly', true);
+                rollInput.style.borderColor = 'var(--muted)';
+                editBtn.textContent = 'ویرایش';
+                editBtn.style.background = 'var(--accent)';
+            }
+        }
+        
+        function saveRollNumber() {
+            const rollNumber = document.getElementById("roll-number");
+            const rollNumberValue = Number(rollNumber.value);
+            fetch('/view/save-roll-number/', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ 
+                    roll_number: rollNumberValue,
+                    sensor_id: getSensorId()
+                }),
+            }).then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    rollNumber.value = data.roll_number;
+                    showToast('شماره رول ذخیره شد', 'success');
+                } else {
+                    showToast('خطا در ذخیره شماره رول', 'error');
+                }
+            }).catch(error => {
+                showToast('خطا در ذخیره شماره رول', 'error');
+            });
+        }
+        // ___________ End of roll number ________________
+        
+        // Reposition probes evenly within detected edges
+        function repositionProbesWithinEdges(sensorId) {
+            if (!sensorId) {
+                sensorId = firstActiveSensorId || getSensorId();
+            }
+            const edgeData = edgeDataBySensor[sensorId];
+            const sensorProbePoints = probePointsBySensor[sensorId] || [];
+            if (!sensorProbePoints.length || !edgeData || !edgeData.is_detected) return;
+            
+            const startCol = edgeData.start_col;
+            const endCol = edgeData.end_col;
+            const rangeWidth = endCol - startCol;
+            const targetRow = Math.floor(rows / 2);
+            const probeCount = sensorProbePoints.length;
+            
+            for (let i = 0; i < sensorProbePoints.length; i++) {
+                const p = sensorProbePoints[i];
+                // Calculate new position evenly distributed within edges
+                const newCol = startCol + ((i + 0.5) * rangeWidth) / probeCount;
+                p.col_on_image = newCol;
+                p.col = Math.floor(newCol);
+                p.row = targetRow;
+            }
+            
+            // Update global probePoints for backward compatibility
+            if (sensorId === firstActiveSensorId) {
+                probePoints = probePointsBySensor[sensorId];
+            }
+            
+            console.log('Probes repositioned within edges:', startCol, '-', endCol);
+        }
+        
+        // ___________ Periodic status update (roll number + edge data) ________________
+        let statusUpdateInterval = null;
+        let isFirstThresholdFetch = true;  // Flag to prevent toast on initial load
+        
+        function fetchAndUpdateStatus() {
+            fetch(`/view/get-roll-status/?sensor_id=${getSensorId()}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Update roll number (only if not in edit mode)
+                        if (!isRollEditMode) {
+                            const rollNumber = document.getElementById("roll-number");
+                            if (rollNumber && data.roll_number !== undefined) {
+                                rollNumber.value = data.roll_number;
+                            }
+                        }
+                        
+                        // Update edge data from backend (for first active sensor - backward compatibility)
+                        const currentSensorId = firstActiveSensorId || getSensorId();
+                        if (data.edge_data) {
+                            const oldEdgeData = edgeDataBySensor[currentSensorId];
+                            const edgeChanged = !oldEdgeData || 
+                                oldEdgeData.start_col !== data.edge_data.start_col || 
+                                oldEdgeData.end_col !== data.edge_data.end_col;
+                            edgeDataBySensor[currentSensorId] = data.edge_data;
+                            
+                            // Reposition probes if edge data changed
+                            if (edgeChanged && probePoints.length > 0) {
+                                repositionProbesWithinEdges(currentSensorId);
+                                updateProbeConfiguration(currentSensorId); // Sync new positions to backend
+                            }
+                        }
+                        
+                        // Update edge threshold if changed (with notification)
+                        if (data.edge_threshold !== undefined) {
+                            const thresholdChanged = data.edge_threshold !== edge_threshold;
+                            const oldThreshold = edge_threshold;
+                            edge_threshold = data.edge_threshold;
+                            const thresholdInput = document.getElementById("edge-threshold");
+                            if (thresholdInput) {
+                                thresholdInput.value = edge_threshold;
+                            }
+                            // Show toast only for auto-adjustments (not first load or manual changes)
+                            if (thresholdChanged && !isFirstThresholdFetch) {
+                                const direction = edge_threshold > oldThreshold ? 'افزایش' : 'کاهش';
+                                showToast(`آستانه تشخیص لبه ${direction} یافت: ${edge_threshold}°C`, 'info');
+                            }
+                            isFirstThresholdFetch = false;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching status:', error);
+                });
+        }
+        
+        function startStatusUpdates() {
+            // Initial fetch
+            fetchAndUpdateStatus();
+            
+            // Set up periodic updates every 5 seconds
+            if (statusUpdateInterval) clearInterval(statusUpdateInterval);
+            
+            statusUpdateInterval = setInterval(() => {
+                fetchAndUpdateStatus();
+            }, 5000);
+        }
+        // ___________ End of periodic status update ________________
+        
+        // ___________ Periodic connection status update ________________
+        let connectionStatusUpdateInterval = null;
+        let isSystemConnected = true; // Track connection state
+        
+        function fetchAndUpdateConnectionStatus() {
+            fetch('/view/get-connection-status/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' || data.status === 'error') {
+                        const wasConnected = isSystemConnected;
+                        isSystemConnected = data.is_connected === true;
+                        
+                        // Update UI based on connection status
+                        if (!isSystemConnected) {
+                            // System is not connected
+                            setSystemStatus('warning', 'سیستم غیرفعال', '⚠');
+                            
+                            // Blur image and show overlay
+                            const thermalImg = document.getElementById('Thermal_Img');
+                            const imageWrap = document.getElementById('image-wrap');
+                            const errorMessage = document.getElementById('connection-error-message');
+                            
+                            if (thermalImg) {
+                                thermalImg.classList.add('system-inactive');
+                            }
+                            if (imageWrap) {
+                                imageWrap.classList.add('system-inactive');
+                            }
+                            if (errorMessage && data.error_message) {
+                                errorMessage.textContent = data.error_message;
+                            }
+                        } else {
+                            // System is connected
+                            if (!wasConnected) {
+                                // Only update if we were previously disconnected
+                                if (!alarmActive) {
+                                    setSystemStatus('normal', 'سیستم فعال', '▶');
+                                }
+                                
+                                // Remove blur and overlay
+                                const thermalImg = document.getElementById('Thermal_Img');
+                                const imageWrap = document.getElementById('image-wrap');
+                                
+                                if (thermalImg) {
+                                    thermalImg.classList.remove('system-inactive');
+                                }
+                                if (imageWrap) {
+                                    imageWrap.classList.remove('system-inactive');
+                                }
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching connection status:', error);
+                    // On error, assume system is not connected
+                    if (isSystemConnected) {
+                        isSystemConnected = false;
+                        setSystemStatus('warning', 'سیستم غیرفعال', '⚠');
+                        
+                        const thermalImg = document.getElementById('Thermal_Img');
+                        const imageWrap = document.getElementById('image-wrap');
+                        
+                        if (thermalImg) {
+                            thermalImg.classList.add('system-inactive');
+                        }
+                        if (imageWrap) {
+                            imageWrap.classList.add('system-inactive');
+                        }
+                    }
+                });
+        }
+        
+        function startConnectionStatusUpdates() {
+            // Initial fetch
+            fetchAndUpdateConnectionStatus();
+            
+            // Set up periodic updates every 5 seconds
+            if (connectionStatusUpdateInterval) clearInterval(connectionStatusUpdateInterval);
+            
+            connectionStatusUpdateInterval = setInterval(() => {
+                fetchAndUpdateConnectionStatus();
+            }, 5000); // 5 seconds
+        }
+        // ___________ End of periodic connection status update ________________
+
+        function updateAverageDisplay() {
+            if (!probePoints.length) {
+                document.getElementById("average-display-input").value = "هیچ المانی موجود نیست";
+                return;
+            }
+            
+            let totalTemp = 0;
+            let totalHumidity = 0;
+            let checkedCount = 0;
+            
+            for (const p of probePoints) {
+                if (p.checkbox && p.checkbox.checked) {
+                    // Get current temperature and humidity values from the probe elements
+                    const tempText = p.tempEl.textContent;
+                    const humText = p.humEl.textContent;
+
+                    // Extract numeric values
+                    const tempMatch = tempText.match(/(\d+\.?\d*)/);
+                    const humMatch = humText.match(/(\d+\.?\d*)/);
+                    
+                    if (tempMatch && humMatch) {
+                        const temp = parseFloat(tempMatch[1]);
+                        const hum = parseFloat(humMatch[1]);
+                        
+                        if (!isNaN(temp) && !isNaN(hum)) {
+                            totalTemp += temp;
+                            totalHumidity += p.humVal;
+                            checkedCount++;
+                        }
+                    }
+                }
+            }
+            
+            if (checkedCount === 0) {
+                document.getElementById("average-display-input").value = "هیچ المانی انتخاب نشده";
+            } else {
+                const avgTemp = totalTemp / checkedCount;
+                const avgHumidity = totalHumidity / checkedCount;
+                
+                // Check if average temperature is out of range
+                if (avgTemp < 35 || avgTemp > 70) {
+                    triggerAlarm();
+                } else {
+                    clearAlarm();
+                }
+                document.getElementById("average-display-input").value = `${avgTemp.toFixed(2)}°C -- ${avgHumidity.toFixed(2)}%`;
+            }
+        }
+
+        // Update probes for a specific sensor
+        function updateProbesForSensor(sensorId) {
+            if (!sensorId) {
+                sensorId = firstActiveSensorId || getSensorId();
+            }
+            
+            const probePoints = probePointsBySensor[sensorId] || [];
+            if (!probePoints.length) return;
+            
+            const gridData = gridDataBySensor[sensorId] || [];
+            // Get prob-hilight elements from image wrap (where they're actually appended)
+            const sensorImagePanel = document.querySelector(`.image-panel[data-sensor-id="${sensorId}"]`);
+            const imageWrap = sensorImagePanel ? sensorImagePanel.querySelector('.image-wrap') : null;
+            let probs_index = 1;
+            for (const p of probePoints) {
+                // Always update probe card position first (regardless of data validity)
+                imgWidth = getBaseWidth();
+                let space_of_each_probe = ((edgeDataBySensor[sensorId].end_col - edgeDataBySensor[sensorId].start_col)*cellWidth) / (probePoints.length)
+                
+                if (p.cardEl) {
+                    //p.cardEl.style.left = `${(p.col_on_image || p.col) * cellWidth + cellWidth/2}px`;
+                    p.cardEl.style.left = `${(edgeDataBySensor[sensorId].start_col)*cellWidth + (space_of_each_probe * probs_index) - cellWidth/2 - space_of_each_probe/2}px`;
+                }
+                
+                const rowOk = Array.isArray(gridData[p.row]);
+                const valOk = rowOk && typeof gridData[p.row][p.col] === "number";
+                //console.log("targetCol", p.col, currentEdgeData?.start_col, currentEdgeData?.end_col);
+                if (!valOk) {
+                    if (p.tempEl) {
+                        p.tempEl.textContent = `... °C`;
+                    }
+                    if (p.humEl) {
+                        p.humEl.textContent = `... %`;
+                        p.humEl.style.color = `#00d2ee`;
+                    }
+                    probs_index++;
+                    continue;
+                }
+                const avg = computeAverageAround(p.row, p.col, sensorId);
+                const humVal = HumidityCalculation(avg);
+                if (p.tempEl) {
+                    p.tempEl.textContent = `${avg.toFixed(2)} °C`;
+                }
+                p.humVal = humVal;
+                if (p.humrealvalue) {
+                    p.humrealvalue.textContent = `${humVal.toFixed(2)} %`;
+                }
+                //p.checkbox.checked = true;
+                let humDiff = (humVal - humidity_threshold).toFixed(2);
+                if (p.humEl) {
+                    if (humDiff < 0) {
+                        if (humDiff >= -0.19) {
+                            p.humEl.style.color = `#51fd92`;
+                        } else {
+                            p.humEl.style.color = `#ff8800`;
+                        }
+                    } else {
+                        if (humDiff <= 0.19) {
+                            p.humEl.style.color = `#51fd92`;
+                        } else {
+                            p.humEl.style.color = `#ff4444`;
+                        }
+                    }
+                    p.humEl.textContent = `${humDiff.replace('-', '')} ${humDiff > 0 ? '+' : '-'}`;
+                }
+                probs_index++;
+            }
+            
+            // Update average display after updating probe values (only for first active sensor)
+            if (sensorId === firstActiveSensorId) {
+                updateAverageDisplay();
+            }
+        }
+        
+        // Update probes for all sensors (backward compatibility wrapper)
+        function updateProbes() {
+            // Update probes for all sensors that have probe points
+            Object.keys(probePointsBySensor).forEach(sensorId => {
+                updateProbesForSensor(parseInt(sensorId));
+            });
+        }
+
+        // Controls wiring
+        document.getElementById("settings-edge-apply-btn").addEventListener("click", () => {
+            const thresholdValue = parseFloat(document.getElementById("settings-edge-threshold-input").value) || 5;
+            
+            // Update global variable
+            update_edge_threshold(thresholdValue);
+        });
+
+        function update_edge_threshold(thresholdValue) {
+            window.edge_threshold = thresholdValue;
+            fetch('/view/update-edge-threshold/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ edge_threshold: thresholdValue, sensor_id: getSensorId() }),
+            }).then(response => response.json())
+            
+            // Update the constant in the code
+            edge_threshold = thresholdValue;
+            document.getElementById("settings-edge-threshold-input").value = thresholdValue;
+            showToast(`حد تشخیص لبه به‌روزرسانی شد: آستانه ${thresholdValue}°C`, 'success')
+        }
+        
+        // Auto edge detection toggle handler
+        document.getElementById("auto-edge-detection-toggle").addEventListener("change", (e) => {
+            const isEnabled = e.target.checked;
+            auto_edge_detection = isEnabled;
+            
+            // Update status text
+            const statusText = document.getElementById("auto-edge-detection-status");
+            statusText.textContent = isEnabled ? "فعال" : "غیرفعال";
+            
+            // Send to backend
+            fetch('/view/update-auto-edge-detection/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ 
+                    auto_edge_detection: isEnabled,
+                    sensor_id: getSensorId()
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast(`تشخیص خودکار لبه ${isEnabled ? 'فعال' : 'غیرفعال'} شد`, 'success');
+                } else {
+                    showToast('خطا در ذخیره تنظیمات', 'error');
+                    // Revert checkbox if failed
+                    e.target.checked = !isEnabled;
+                    auto_edge_detection = !isEnabled;
+                    statusText.textContent = !isEnabled ? "فعال" : "غیرفعال";
+                }
+            })
+            .catch(error => {
+                console.error('Error updating auto edge detection:', error);
+                showToast('خطا در برقراری ارتباط با سرور', 'error');
+                // Revert checkbox if failed
+                e.target.checked = !isEnabled;
+                auto_edge_detection = !isEnabled;
+                statusText.textContent = !isEnabled ? "فعال" : "غیرفعال";
+            });
+        });
+        
+        // Toggle: threshold-based vs manual edge positioning
+        document.getElementById("find-edge-by-threshold-toggle").addEventListener("change", (e) => {
+            const isEnabled = e.target.checked;
+            find_edge_by_threshold = isEnabled;
+            
+            // Update status text
+            const statusText = document.getElementById("find-edge-by-threshold-status");
+            statusText.textContent = isEnabled ? "خودکار" : "دستی";
+            
+            // Toggle settings sections visibility
+            document.getElementById("threshold-edge-settings").style.display = isEnabled ? "block" : "none";
+            document.getElementById("manual-edge-settings").style.display = isEnabled ? "none" : "block";
+            
+            // Send to backend
+            fetch('/view/update-find-edge-by-threshold/', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ 
+                    find_edge_by_threshold: isEnabled,
+                    sensor_id: getSensorId()
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast(`حالت تشخیص لبه: ${isEnabled ? 'خودکار (آستانه)' : 'دستی'}`, 'success');
+                    // Redraw edge lines with new mode for all sensors
+                    Object.keys(edgeDataBySensor).forEach(sensorId => {
+                        displayEdgePoints(edgeDataBySensor[sensorId], parseInt(sensorId));
+                    });
+                } else {
+                    showToast('خطا در ذخیره تنظیمات', 'error');
+                    revertFindEdgeToggle(e.target, !isEnabled, statusText);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating find edge by threshold:', error);
+                showToast('خطا در برقراری ارتباط با سرور', 'error');
+                revertFindEdgeToggle(e.target, !isEnabled, statusText);
+            });
+        });
+        
+        function revertFindEdgeToggle(checkbox, value, statusText) {
+            checkbox.checked = value;
+            find_edge_by_threshold = value;
+            statusText.textContent = value ? "خودکار" : "دستی";
+            document.getElementById("threshold-edge-settings").style.display = value ? "block" : "none";
+            document.getElementById("manual-edge-settings").style.display = value ? "none" : "block";
+        }
+        
+        document.getElementById("settings-threshold-apply-btn").addEventListener("click", () => {
+            const threshold = parseFloat(document.getElementById("settings-threshold-input").value) || 7;
+            
+            // Send to backend
+            const csrfToken = getCookie('csrftoken');
+            if (csrfToken) {
+                fetch('/view/update-threshold/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        threshold: threshold,
+                        sensor_id: getSensorId()
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        humidity_threshold = threshold;
+                        showToast(`حد رطوبت مناسب به ${threshold}% به‌روزرسانی شد`, 'success');
+                    } else {
+                        showToast('خطا در ذخیره حد رطوبت', 'error');
+                    }
+                })
+                .catch(error => {
+                    showToast('خطا در ارتباط با سرور', 'error');
+                });
+            }
+        });
+        
+        document.getElementById("settings-probes-apply-btn").addEventListener("click", () => {
+            const n = parseInt(document.getElementById("settings-probes-input").value);
+            // Create probes for current selected sensor
+            const sensorId = getSensorId();
+            createProbes(n, sensorId);
+        });
+        document.getElementById("settings-probes-input").addEventListener("keyup", (e) => {
+            if (e.key === "Enter") {
+                const n = parseInt(e.target.value);
+                // Create probes for current selected sensor
+                const sensorId = getSensorId();
+                createProbes(n, sensorId);
+            }
+        });
+
+        // Show/Hide controls
+        const toggleImage = document.getElementById("toggle-image");
+        const toggleGrid = document.getElementById("toggle-grid");
+        // Get elements for first active sensor
+        const currentSensorIdForControls = firstActiveSensorId || getSensorId();
+        const imagePanel = document.querySelector(`.image-panel[data-sensor-id="${currentSensorIdForControls}"]`);
+        const gridPanel = document.querySelector(`.grid-panel[data-sensor-id="${currentSensorIdForControls}"]`);
+        const gridEl = document.querySelector(`.temperature-grid[data-sensor-id="${currentSensorIdForControls}"]`);
+
+        function setImageVisible(v) {
+            imagePanel.classList.toggle('hidden', !v);
+            // Recalc sizes after layout change
+            setTimeout(() => {
+                imgWidth = getBaseWidth();
+                updateProbes();
+            }, 0);
+        }
+        function setGridVisible(v) {
+            gridPanel.classList.toggle('hidden', !v);
+            gridEl.style.display = v ? 'grid' : 'none';
+        }
+        toggleImage.addEventListener('change', (e) => setImageVisible(e.target.checked));
+        toggleGrid.addEventListener('change', (e) => setGridVisible(e.target.checked));
+
+        // Default state: image hidden, grid hidden
+        setImageVisible(true);
+        setGridVisible(false);
+
+
+
+        // Initialize status bar
+        setSystemStatus('normal', 'سیستم آماده به کار', '⏳');
+        
+        startUpdating();
+        
+        // Start periodic roll status updates
+        startStatusUpdates();
+        
+        // Start periodic connection status updates
+        startConnectionStatusUpdates();
+        
+        // Always start fetching all sensors data (backend serves all active sensors)
+        // Initialize: fetch once, then start periodic updates
+        fetchAllSensorsData();
+        startMultiSensorUpdates();
+        
+        // Load initial probe configuration from database for ALL active sensors
+        function loadProbeConfiguration() {
+            // Load probe configuration for all active sensors
+            if (!allSensorsData || Object.keys(allSensorsData).length === 0) {
+                // Wait for sensors data to be loaded
+                setTimeout(loadProbeConfiguration, 500);
+                return;
+            }
+            
+            // Load probes for each active sensor
+            const sensorIds = Object.keys(allSensorsData).map(id => parseInt(id));
+            console.log('Loading probe configuration for sensors:', sensorIds);
+            sensorIds.forEach(sensorId => {
+                loadProbeConfigurationForSensor(sensorId);
+            });
+        }
+        
+        // Load probe configuration for a specific sensor
+        function loadProbeConfigurationForSensor(sensorId) {
+            console.log(`[loadProbeConfigurationForSensor] Loading config for sensor ${sensorId}`);
+            fetch(`/view/get-probe-config/?sensor_id=${sensorId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' && data.probe_count > 0) {
+                        console.log(`[loadProbeConfigurationForSensor] Found config for sensor ${sensorId}: ${data.probe_count} probes`);
+                        
+                        // Set the formula for first active sensor (for settings panel)
+                        if (sensorId === firstActiveSensorId) {
+                            formula.value = data.active_formula;
+                            document.getElementById("settings-probes-input").value = data.probe_count;
+                        }
+                        
+                        // Create probes based on probe_count from database
+                        // Use existing probes_data if available, otherwise create default positions
+                        createProbesFromCount(data.probe_count, data.probes_data, data.checked_probes, sensorId);
+                    } else {
+                        console.log(`[loadProbeConfigurationForSensor] No config for sensor ${sensorId}, using default`);
+                        // Initialize default probes for all sensors that don't have configuration
+                        // Use the default count from settings (which applies to all sensors)
+                        const defaultCount = parseInt(document.getElementById("settings-probes-input").value) || 0;
+                        if (defaultCount > 0) {
+                            createProbes(defaultCount, sensorId);
+                        } else {
+                            console.log(`[loadProbeConfigurationForSensor] No default count set for sensor ${sensorId}`);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error(`[loadProbeConfigurationForSensor] Error loading probe config for sensor ${sensorId}:`, error);
+                    // Fallback to default probes for all sensors on error
+                    const defaultCount = parseInt(document.getElementById("settings-probes-input").value) || 0;
+                    if (defaultCount > 0) {
+                        createProbes(defaultCount, sensorId);
+                    }
+                });
+        }
+        
+        // Create probes based on probe_count, using existing probes_data if available
+        function createProbesFromCount(probeCount, existingProbesData = {}, checkedProbes = [], sensorId) {
+            if (!sensorId) {
+                sensorId = firstActiveSensorId || getSensorId();
+            }
+            
+            console.log(`[createProbesFromCount] Creating ${probeCount} probes for sensor ${sensorId}`);
+            
+            // Remove only prob-hilight for this sensor
+            const sensorImagePanel = document.querySelector(`.image-panel[data-sensor-id="${sensorId}"]`);
+            if (sensorImagePanel) {
+                sensorImagePanel.querySelectorAll('.prob-hilight').forEach(el => el.remove());
+            }
+            
+            // Get probes container for this sensor
+            const wrap = document.querySelector(`.probes-container[data-sensor-id="${sensorId}"]`);
+            if (!wrap) {
+                console.error(`[createProbesFromCount] Probes container not found for sensor: ${sensorId}`);
+                return;
+            }
+            wrap.innerHTML = "";
+            
+            // Initialize probe points array for this sensor
+            if (!probePointsBySensor[sensorId]) {
+                probePointsBySensor[sensorId] = [];
+            }
+            probePointsBySensor[sensorId] = [];
+            
+            // Update global probePoints for backward compatibility (first active sensor)
+            if (sensorId === firstActiveSensorId) {
+                probePoints = probePointsBySensor[sensorId];
+            }
+            
+            // Determine edge boundaries
+            let startCol = 0;
+            let endCol = cols;
+            const edgeData = edgeDataBySensor[sensorId];
+            if (edgeData && edgeData.is_detected && edgeData.start_col !== null && edgeData.end_col !== null) {
+                startCol = edgeData.start_col;
+                endCol = edgeData.end_col;
+            }
+            
+            const rangeWidth = endCol - startCol;
+            const targetRow = Math.floor(rows / 2);
+            
+            // sensorImagePanel already defined above, reuse it
+            const imageWrap = sensorImagePanel ? sensorImagePanel.querySelector('.image-wrap') : null;
+            
+            // Create probe elements
+            for (let i = 0; i < probeCount; i++) {
+                const probeId = `probe${i + 1}`;
+                const existingProbe = existingProbesData[probeId];
+                
+                // Use existing position if available, otherwise calculate default position
+                let probeCol, probeRow;
+                if (existingProbe && typeof existingProbe.x !== 'undefined' && typeof existingProbe.y !== 'undefined') {
+                    probeCol = existingProbe.x;
+                    probeRow = existingProbe.y;
+                } else {
+                    // Calculate default position evenly distributed
+                    probeCol = startCol + ((i + 0.5) * rangeWidth) / probeCount;
+                    probeRow = targetRow;
+                }
+                
+                // If edge detection is active, redistribute probes evenly within the range
+                if (edgeData && edgeData.is_detected) {
+                    probeCol = startCol + ((i + 0.5) * rangeWidth) / probeCount;
+                    probeRow = targetRow;
+                }
+                
+                const card = document.createElement("div");
+                card.className = "probe-card";
+
+                // Add checkbox for each probe
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.className = "probe-checkbox";
+                // Set checkbox state based on loaded configuration or default to checked
+                checkbox.checked = checkedProbes.length > 0 ? checkedProbes.includes(i + 1) : true;
+                checkbox.dataset.probeIndex = i;
+                checkbox.addEventListener("change", () => {
+                    updateAverageDisplay();
+                    updateProbeConfiguration(sensorId); // Update server when checkboxes change
+                });
+
+                const title = document.createElement("div");
+                title.className = "probe-title";
+                const hum = document.createElement("div");
+                hum.className = "probe-humidity";
+                hum.textContent = "0 %";
+                const humrealvalue = document.createElement("div");
+                humrealvalue.className = "probe-real-value";
+                humrealvalue.textContent = "0 %";
+                const tmp = document.createElement("div");
+                tmp.className = "probe-temp";
+                tmp.textContent = "0 °C";
+
+                card.appendChild(checkbox);
+                card.appendChild(title);
+                card.appendChild(hum);
+                card.appendChild(humrealvalue);
+                card.appendChild(tmp);
+                wrap.appendChild(card);
+                
+                // Store probe point with sensor ID
+                const probePoint = {
+                    col_on_image: probeCol,
+                    row: probeRow, 
+                    col: Math.floor(probeCol),
+                    cardEl: card, 
+                    humEl: hum,
+                    humrealvalue: humrealvalue,
+                    tempEl: tmp,
+                    checkbox: checkbox,
+                    index: i,
+                    sensorId: sensorId
+                };
+                probePointsBySensor[sensorId].push(probePoint);
+                
+                // Update global probePoints for backward compatibility (first active sensor)
+                if (sensorId === firstActiveSensorId) {
+                    probePoints = probePointsBySensor[sensorId];
+                }
+            }
+            
+            // Update probes for this sensor
+            updateProbesForSensor(sensorId);
+            
+            // Update probe configuration in database after creating probes
+            updateProbeConfiguration(sensorId);
+            
+            console.log(`[createProbesFromCount] Created ${probeCount} probes for sensor ${sensorId} and updated database`);
+        }
+        
+        // Legacy function - kept for backward compatibility
+        function createProbesFromConfig(probesData, checkedProbes = [], sensorId) {
+            if (!sensorId) {
+                sensorId = firstActiveSensorId || getSensorId();
+            }
+            
+            const probeCount = Object.keys(probesData).filter(k => !k.startsWith('avg')).length;
+            if (probeCount === 0) {
+                console.log(`[createProbesFromConfig] No probes to create for sensor ${sensorId} (probeCount: 0)`);
+                return;
+            }
+            
+            console.log(`[createProbesFromConfig] Creating ${probeCount} probes from config for sensor ${sensorId}`);
+            console.log(`[createProbesFromConfig] probesData keys:`, Object.keys(probesData));
+            console.log(`[createProbesFromConfig] probesData:`, probesData);
+            
+            // Remove only prob-hilight for this sensor
+            const sensorImagePanel = document.querySelector(`.image-panel[data-sensor-id="${sensorId}"]`);
+            if (sensorImagePanel) {
+                sensorImagePanel.querySelectorAll('.prob-hilight').forEach(el => el.remove());
+            }
+            
+            // Get probes container for this sensor
+            const wrap = document.querySelector(`.probes-container[data-sensor-id="${sensorId}"]`);
+            if (!wrap) {
+                console.error(`[createProbesFromConfig] Probes container not found for sensor: ${sensorId}`);
+                return;
+            }
+            wrap.innerHTML = "";
+            
+            // Initialize probe points array for this sensor
+            if (!probePointsBySensor[sensorId]) {
+                probePointsBySensor[sensorId] = [];
+            }
+            probePointsBySensor[sensorId] = [];
+            
+            // Update global probePoints for backward compatibility (first active sensor)
+            if (sensorId === firstActiveSensorId) {
+                probePoints = probePointsBySensor[sensorId];
+            }
+            
+            // Determine edge boundaries
+            let startCol = 0;
+            let endCol = cols;
+            
+            // Use edge detection data from backend if available (for this sensor)
+            const edgeData = edgeDataBySensor[sensorId];
+            if (edgeData && edgeData.is_detected && edgeData.start_col !== null && edgeData.end_col !== null) {
+                startCol = edgeData.start_col;
+                endCol = edgeData.end_col;
+            }
+            
+            const rangeWidth = endCol - startCol;
+            const targetRow = Math.floor(rows / 2);
+            let probeIndex = 0;
+            
+            // sensorImagePanel already defined above, reuse it
+            const imageWrap = sensorImagePanel ? sensorImagePanel.querySelector('.image-wrap') : null;
+            
+            // Create probe elements for each configured probe
+            let createdCount = 0;
+            Object.entries(probesData).forEach(([probeId, probeInfo], index) => {
+                // Skip average data entries
+                if (probeId.startsWith('avg')) {
+                    console.log(`[createProbesFromConfig] Skipping avg entry: ${probeId}`);
+                    return;
+                }
+                
+                // Validate probeInfo has required properties
+                if (!probeInfo || typeof probeInfo !== 'object') {
+                    console.warn(`[createProbesFromConfig] Invalid probeInfo for probe ${probeId}:`, probeInfo);
+                    return;
+                }
+                
+                if (typeof probeInfo.x === 'undefined' || typeof probeInfo.y === 'undefined') {
+                    console.warn(`[createProbesFromConfig] Missing x or y for probe ${probeId}:`, probeInfo);
+                    return;
+                }
+                
+                console.log(`[createProbesFromConfig] Processing probe ${probeId} (index ${index}):`, probeInfo);
+                
+                // Recalculate probe position to fit within edge boundaries
+                let probeCol = probeInfo.x;
+                let probeRow = probeInfo.y;
+                // If edge detection is active, redistribute probes evenly within the range
+                if (edgeData && edgeData.is_detected) {
+                    probeCol = startCol + ((probeIndex + 0.5) * rangeWidth) / probeCount;
+                    probeRow = targetRow; // Keep probes centered vertically
+                }
+                
+                const card = document.createElement("div");
+                card.className = "probe-card";
+
+                // Add checkbox for each probe
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.className = "probe-checkbox";
+                // Set checkbox state based on loaded configuration
+                checkbox.checked = checkedProbes.includes(index + 1);
+                checkbox.dataset.probeIndex = probeIndex;
+                checkbox.addEventListener("change", () => {
+                    updateAverageDisplay();
+                    updateProbeConfiguration(sensorId); // Update server when checkboxes change
+                });
+
+
+                const title = document.createElement("div");
+                title.className = "probe-title";
+                //title.textContent = `${probeIndex + 1}`;
+                const hum = document.createElement("div");
+                hum.className = "probe-humidity";
+                hum.textContent = "0 %";
+                const humrealvalue = document.createElement("div");
+                humrealvalue.className = "probe-real-value";
+                humrealvalue.textContent = "0 %";
+                const tmp = document.createElement("div");
+                tmp.className = "probe-temp";
+                tmp.textContent = "0 °C";
+
+                card.appendChild(checkbox);
+                card.appendChild(title);
+                card.appendChild(hum);
+                card.appendChild(humrealvalue);
+                card.appendChild(tmp);
+                wrap.appendChild(card);
+                
+                // Store probe point with sensor ID
+                const probePoint = {
+                    col_on_image: probeCol,
+                    row: probeRow, 
+                    col: Math.floor(probeCol),
+                    cardEl: card, 
+                    humEl: hum,
+                    humrealvalue: humrealvalue,
+                    tempEl: tmp,
+                    checkbox: checkbox,
+                    index: probeIndex,
+                    sensorId: sensorId
+                };
+                probePointsBySensor[sensorId].push(probePoint);
+                
+                // Update global probePoints for backward compatibility (first active sensor)
+                if (sensorId === firstActiveSensorId) {
+                    probePoints = probePointsBySensor[sensorId];
+                }
+                
+                probeIndex++;
+                createdCount++;
+            });
+            
+            console.log(`[createProbesFromConfig] Created ${createdCount} probes for sensor ${sensorId} (expected ${probeCount})`);
+            
+            numProbes = probeIndex;
+            
+            // Update probes for this sensor
+            updateProbesForSensor(sensorId);
+            
+            // Update average display after loading probes from config (only for first active sensor)
+            if (sensorId === firstActiveSensorId) {
+                updateAverageDisplay();
+            }
+        }
+        
+        // Load configuration after image loads
+        // document.getElementById("Thermal_Img").addEventListener('load', () => {
+        //     imgWidth = getBaseWidth();
+        //     // Wait a moment for edge detection to run first
+            
+        // });
+        
+        // Initialize average display when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAverageDisplay();
+            updateFormulaExamples(); // Initialize examples on page load
+            imgWidth = getBaseWidth();
+            // Wait a moment for edge detection to run first
+                setTimeout(() => {
+                    loadProbeConfiguration();
+                    loadSavedPoints(); // Load saved humidity points
+                }, 1500);
+            // Start probe monitoring after 10 seconds
+            setTimeout(() => {
+                startProbeMonitoring();
+            }, 10000);
+        });
+        formula.addEventListener("input", () => {
+            updateProbes();
+            updateProbeConfiguration();
+            updateFormulaExamples(); // Update examples when formula changes
+        });
+        
+        // Refresh CSRF token every 5 minutes to prevent expiration
+        setInterval(refreshCSRFToken, 5 * 60 * 1000);
+        
+        // Note: Auto-saving probe data is now handled by the backend thermal_worker
+        
+        // Probe monitoring system
+        let lastCheckedProbesCount = 0;
+        let probeMonitoringInterval = null;
+        
+        function getCheckedProbesCount() {
+            if (!probePoints.length) return 0;
+            
+            let checkedCount = 0;
+            for (let i = 0; i < probePoints.length; i++) {
+                if (probePoints[i].checkbox && probePoints[i].checkbox.checked) {
+                    checkedCount++;
+                }
+            }
+            return checkedCount;
+        }
+        
+        function startProbeMonitoring() {
+            // Initialize the count
+            lastCheckedProbesCount = getCheckedProbesCount();
+            console.log('Probe monitoring started. Initial checked probes count:', lastCheckedProbesCount);
+            
+            // Start monitoring every minute
+            if (probeMonitoringInterval) clearInterval(probeMonitoringInterval);
+            
+            probeMonitoringInterval = setInterval(() => {
+                const currentCheckedCount = getCheckedProbesCount();
+                
+                if (currentCheckedCount !== lastCheckedProbesCount) {
+                    console.log(`Checked probes count changed: ${lastCheckedProbesCount} → ${currentCheckedCount}`);
+                    lastCheckedProbesCount = currentCheckedCount;
+                    
+                    // Call updateProbeConfiguration when count changes
+                    updateProbeConfiguration();
+                }
+            }, 60000);
+        }
+    </script>
+    <script>
+        console.log("____________");
+        function createCharts() {
+            console.log("____________");
+            const chart_filter = document.querySelectorAll('.chart-filter a');
+            let charts_container = document.querySelector('#charts_container');
+            chart_filter.forEach(item=>{
+                let chart_container = document.createElement('div');
+                chart_container.classList.add(item.classList.contains("year") ? 'year' : item.classList.contains("week") ? 'week' : item.classList.contains("month") ? 'month' : item.classList.contains("daily_24") ? 'daily_24' : item.classList.contains("daily_8") ? 'daily_8' : 'hourly');
+                charts_container.appendChild(chart_container);
+                chart_container.classList.add('on_loading');
+
+                item.addEventListener('click',()=>{
+                    chart_filter.forEach(item=>{
+                        item.classList.remove('active');
+                        document.querySelector(`#charts_container ${item.classList.contains("year") ? '.year' : item.classList.contains("week") ? '.week' : item.classList.contains("month") ? '.month' : item.classList.contains("daily_24") ? '.daily_24' : item.classList.contains("daily_8") ? '.daily_8' : '.hourly'}`).classList.remove('active');
+                    });
+                    item.classList.add('active');
+                    document.querySelector(`#charts_container ${item.classList.contains("year") ? '.year' : item.classList.contains("week") ? '.week' : item.classList.contains("month") ? '.month' : item.classList.contains("daily_24") ? '.daily_24' : item.classList.contains("daily_8") ? '.daily_8' : '.hourly'}`).classList.add('active');
+                });
+
+
+                fetch(`/view/chart-info-json/?${item.classList.contains("year") ? 'year' : item.classList.contains("week") ? 'week' : item.classList.contains("month") ? 'month' : item.classList.contains("daily_24") ? 'daily_24' : item.classList.contains("daily_8") ? 'daily_8' : 'hourly'}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        year: item.classList.contains("year"),
+                        week: item.classList.contains("week"),
+                        month: item.classList.contains("month"),
+                        daily_24: item.classList.contains("daily_24"),
+                        daily_8: item.classList.contains("daily_8"),
+                        hourly: item.classList.contains("hourly"),
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    chart_container.classList.remove('on_loading');
+                    console.log("Success:", data);
+                    if(data.length < 1){
+                        console.log("هیچ داده‌ای یافت نشد");
+                        chart_container.insertAdjacentHTML('beforeend',`
+                        <div class="alert alert-warning text-center">
+                            هیچ داده‌ای یافت نشد
+                        </div>
+                        `);
+                    } else {
+                        
+                    }
+                    let chart_data = document.createElement('div');
+                    chart_data.id = `chart_${item.classList.contains("year") ? 'year' : item.classList.contains("week") ? 'week' : item.classList.contains("month") ? 'month' : item.classList.contains("daily_24") ? 'daily_24' : item.classList.contains("daily_8") ? 'daily_8' : 'hourly'}`;
+                    chart_container.appendChild(chart_data);
+                    let series_data = [{
+                            name: `تولید ${item.classList.contains("year") ? 'سالانه' : item.classList.contains("week") ? 'هفتگی' : item.classList.contains("month") ? 'ماهانه' : item.classList.contains("daily_24") ? 'روزانه' : item.classList.contains("daily_8") ? '8 ساعته' : '1 ساعته'}`,
+                            data: data.series,
+                        }]
+                    var options = {
+                        series: series_data,
+                        chart: {
+                            height: 400,
+                            type: 'area',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false,
+                                // tools: {
+                                //     download: false
+                                // }
+                            },
+                        },
+                        fill: {
+                            type: 'gradient',
+                            gradient: {
+                            shade: 'light',
+                            type: 'vertical',
+                            shadeIntensity: 0.2,
+                            opacityFrom: 0.3,
+                            opacityTo: 0,
+                            stops: [0, 80, 100],
+                            },
+                        },
+                        dataLabels: {
+                            enabled: false,
+                            // style: {
+                            //     fontSize: '8px',
+                            //     fontWeight: 'bold',
+                            //     colors: ['var(--main)'],
+
+                            // },
+                            // background: {
+                            //     borderRadius: 8,
+                            //     foreColor: 'var(--main)',
+                            // }
+                        },
+                        markers: {
+                            size: [0, 0],
+                            colors: undefined,
+                            strokeColors: '#151924',
+                        },
+                        stroke: {
+                            curve: 'smooth',
+                            width: 1,
+                        },
+                        colors: ['#FF9800', '#151924'],
+                        // colors: [function ({ value, seriesIndex, w }) {
+                        //     return 'var(--main)'
+                        // }],
+
+                        //   title: {
+                        //     text: 'Product Trends by Month',
+                        //     align: 'left'
+                        //   },
+                        grid: {
+                            xaxis: {
+                                lines: {
+                                    show: true
+                                }
+                            },
+                            yaxis: {
+                                lines: {
+                                    show: true
+                                }
+                            },
+                            row: {
+                                colors: undefined,
+                                opacity: 0.5
+                            },
+                            column: {
+                                colors: undefined,
+                                opacity: 0.5
+                            },
+                        },
+                        xaxis: {
+                            categories: data.xaxis,
+                            min:1,
+                            max:data.xaxis.length,
+                            labels: {
+                                style: {
+                                    colors: ['#fff'],
+                                },
+                                offsetX: -35,
+                                offsetY: 80,
+                            },
+                        },
+                        yaxis: {
+                            min: 5,
+                            max: 9,
+                            tickAmount: 4,
+                            labels: {
+                                style: {
+                                    colors: ['#fff'],
+                                    fontSize: '14px',
+                                },
+                                offsetX: -20,
+                                formatter: function (val) {
+                                const customTicks = [5, 6, 7, 8, 9];
+                                if (customTicks.includes(val)) {
+                                    return val;
+                                }
+                                return "";
+                                }
+                            }
+                        },
+                        annotations: {
+                            xaxis: [],
+                            yaxis: [
+                                    {
+                                        y: {{ threshold|default:7 }},
+                                        borderColor: '#00E396',
+                                        borderWidth: 2,
+                                        strokeDashArray: 0,
+                                        label: {
+                                            show: true,
+                                            text: 'حد رطوبت مناسب ({{ threshold|default:7 }})',
+                                            position: 'left',
+                                            style: {
+                                                color: '#fff',
+                                                background: '#00E396',
+                                                fontSize: '18px',
+                                            }
+                                        }
+                                    }
+                                ]
+                        },
+                        tooltip: {
+                            custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+                                return '<div class="bg-white rounded shadow-sm p-3">' +
+                                    '<span style="color: #000;">' + series[seriesIndex][dataPointIndex] + '</span>' +
+                                    '</div>'
+                            }
+                        },
+                        legend: {
+                            fontFamily: 'iranyekan',
+                            fontSize: '15px',
+                            horizontalAlign: 'center',
+                            markers: {
+                                width: 19,
+                                height: 19,
+                                offsetX: 6,
+                                offsetY: 0
+                            },
+                            itemMargin: {
+                                horizontal: 20,
+                                vertical: 0,
+                            },
+                        },
+                        title: {
+                        text: "",
+                        align: 'center'
+                        },
+                        // title: {
+                        //     text: 'تولید ماه جاری',
+                        //     align: 'center',
+                        //     margin: 30,
+                        //     offsetX: 0,
+                        //     offsetY: 0,
+                        //     floating: false,
+                        //     style: {
+                        //         fontSize: '15px',
+                        //         fontWeight: 'bold',
+                        //         fontFamily: 'Peyda',
+                        //         color: 'var(--main)'
+                        //     },
+                        // },
+                    };
+                    
+                    let annotations_list = []
+                    if(Array.isArray(data.roll_annotations)){
+                        for(const annotation of data.roll_annotations){
+                            annotations_list.push({
+                                        x: annotation.x,
+                                        borderColor: '#775DD0',
+                                        strokeDashArray: 8,
+                                        borderWidth:2,
+                                        label: {
+                                            show: true,
+                                            text: `رول ${annotation.roll_number}`,
+                                            position: 'top',
+                                            orientation: 'horizontal',
+                                            style: {
+                                                color: '#fff',
+                                                background: '#775DD0',
+                                                fontSize: '12px',
+                                            }
+                                        }
+                                    })
+                        }
+                    }
+                    options.annotations.xaxis = annotations_list;
+                    new ApexCharts(chart_data, options).render();
+                    chart_container.classList.remove('on_loading');
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                });
+                document.querySelector("#charts_container > div").classList.add('active');
+            });
+        }
+        createCharts();
+    </script>
+</body>
+</html>

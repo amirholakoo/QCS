@@ -56,6 +56,9 @@
   min-height: 52px;
   font-size: 14px;
 }
+.calendar .day_titles .days .day_item .title {
+  min-height: unset !important;
+}
 .calendar .days .day_item label {
   margin-bottom: 0;
   cursor: pointer;

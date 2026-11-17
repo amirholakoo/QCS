@@ -2,27 +2,30 @@ let navs = document.querySelectorAll('.nav_item, .nav_link');
 let pages = document.getElementsByClassName('section_page');
 let Is_Hash = false;
 let Step_1 = false;
+let record_list = null;
+
 if (history.pushState) {
     hashchanged();
 }
-$(window).bind("hashchange", function() {
+
+window.addEventListener("hashchange", function () {
     hashchanged();
 });
 
-function hashchanged() {
+async function hashchanged() {
     Is_Hash=false;
     UrlHsh = document.location.hash;
     resetpage();
     if (UrlHsh) {
         let hash_words = UrlHsh.split('#');
+        
         hash_words.shift();
-        console.log(hash_words,hash_words.length,hash_words[3]);
         for (let i=0;i < hash_words.length;i++) {
-            console.log(hash_words[i]);
-            SetPage(hash_words[i]);
+            SetPage(hash_words[i].replace(/\?.*$/, ''));
+            SetSectionsFormFlow();
         }
+        await LoadPageData(hash_words[hash_words.length-1].replace(/\?.*$/, ''));
     } else {
-        console.log("no urlhash")
         SetPage("dashboard");
     }
 }
@@ -40,7 +43,7 @@ function resetpage() {
     }
 }
 
-function SetPage(id) {
+async  function SetPage(id) {
     let nav_item = document.querySelector(`[nav_id=${id}]`)
     let page = document.getElementById(id)
 
@@ -52,40 +55,33 @@ function SetPage(id) {
         // window.location = "#nav_home";
         return;
     }
-    if (nav_item && nav_item.classList.contains("step")) {
-        validation_proccess_of_shipment(id,nav_item,page);
+
+    currentPage = id;
+    await LoadGlobalData();
+    // =========== record list view show more on scroll start =======
+
+    record_list = document.querySelector('.section_page.active .record_list');
+    if (record_list) {
+        DisplayMoreOnScroll()
     }
-    if (nav_item && nav_item.classList.contains("machine_api")) {
-        call_last_roll_api(nav_item.getAttribute("machine_id"));
+    // =========== record list view show more on scroll end =======
+    
+    if(id == "setting") {
+        setTimeout(SetSettingsNav, 100);
     }
 }
 
-function validation_proccess_of_shipment(id,nav_item,page) {
-    steps = [
-        {"name":"add_truck","index":1},
-        {"name":"shipment_detail","index":2},
-        {"name":"add_shipment_weight","index":3},
-    ]
 
-    let_index_of_steps = steps.length;
-    for(const x of steps) {
-        let nav_item = document.querySelector(`[nav_id=${x.name}]`)
-        let page = document.getElementById(x.name)
-        if (x.name == id) {
-            let_index_of_steps = x.index;
-            nav_item.classList.remove('complete');
-            page.classList.remove('complete');
-            nav_item.classList.add('active');
-            page.classList.add('active');
-        } else {
-            if (nav_item && page) {
-                nav_item.classList.remove('complete');
-                page.classList.remove('complete');
-            }
-            if(let_index_of_steps > x.index) {
-                nav_item.classList.add('complete');
-                page.classList.add('complete');
-            }
-        }
+function SetSettingsNav() {
+    const hash = document.location.hash;
+    let setting_navs = document.querySelectorAll(".section_page.active .setting_nav a");
+    for ( const x of setting_navs) {
+        x.classList.remove("active")
+    }
+    if(setting_navs.length > 1) {
+        if (hash.toLowerCase().includes("paper_type")) {setting_navs[3].classList.add("active")}
+        else if(hash.toLowerCase().includes("production")) {setting_navs[2].classList.add("active")}
+        else if(hash.toLowerCase().includes("brand_dashboard")) {setting_navs[1].classList.add("active")}
+        else {setting_navs[0].classList.add("active")}
     }
 }

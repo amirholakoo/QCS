@@ -1,0 +1,1 @@
+# Pulp app initialization

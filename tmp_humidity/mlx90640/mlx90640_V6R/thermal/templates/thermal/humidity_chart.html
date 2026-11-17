@@ -1,0 +1,157 @@
+{% load static %}
+<style>
+    .humidity_svg_points {
+        width: 98%;
+        height: 200px;
+        padding: 12px;
+    }
+    .humidity_card {
+        width: 100%;
+        height: 100%;
+        background-color: var(--bg);
+        border-radius: 16px;
+        position: relative;
+    }
+    .humidity_card::before {
+        content: '';
+        direction: ltr;
+        position: absolute;
+        border-bottom: 2px dashed rgba(21, 255, 138, 0.5);
+        width: calc(100% - 80px);
+        height: 1px;
+        top: 50%;
+        left: 40px;
+    }
+    .humidity_card::after {
+        content: '{{ threshold|default:7 }}';
+        direction: ltr;
+        position: absolute;
+        top: 46%;
+        left: 10px;
+    }
+    .humidity_card svg {
+        height: 100%;
+        width: 100%;
+        position: relative;
+        z-index: +999;
+    }
+    .humidity_card svg circle {
+        transition: 0.4s;
+        fill:#fff;
+        /* stroke: var(--bg); */
+        stroke: #222731;
+        stroke-width: 4px;
+        r: 7;
+        z-index: +999;
+        position: relative;
+    }
+    .humidity_card svg path {
+        transition: 0.4s;
+        fill:none;
+        stroke: rgba(255, 255, 255, 0.6);
+        stroke-miterlimit:10;
+        stroke-width:2px;
+        z-index: 0;
+    }
+    .humidity_card svg path,.humidity_card svg g{
+        position: absolute;
+    }
+    .humidity_card span {
+        direction: ltr;
+        position: absolute;
+        width: calc(100% - 80px);
+        height: 1px;
+        z-index: 0;
+    }
+    .humidity_card span:nth-child(1) {
+        top: 25%;
+        left: 40px;
+        /* border-color: rgba(255, 21, 21, 0.5); */
+        border-top: 2px dashed rgba(255, 121, 112, 0.6);
+        height: 51px;
+        background: linear-gradient(0deg, #ff76761a, transparent);
+    }
+    .humidity_card span:nth-child(1)::after {
+        content: '+1';
+        direction: ltr;
+        position: absolute;
+        left: -30px;
+        top: -10px;
+    }
+    .humidity_card span:nth-child(2) {
+        top: 50%;
+        left: 40px;
+        height: 51px;
+        border-bottom: 2px dashed rgba(255, 182, 47, 0.6);
+        background: linear-gradient(180deg, #ff74181a, transparent);
+    }
+    .humidity_card span:nth-child(2)::after {
+        content: '-1';
+        direction: ltr;
+        position: absolute;
+        left: -30px;
+        bottom: -10px;
+    }
+</style>
+
+<section class="humidity_svg_points">
+    <div class="humidity_card">
+        <span></span>
+        <span></span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100% 100%" id="humidity_svg_card">
+            
+        </svg>
+    </div>
+</section>
+<script>
+    const humidity_card = document.getElementsByClassName("humidity_card")[0];
+    const humidity_svg_card = document.getElementById("humidity_svg_card");
+    let svg_range = 14;
+    let svg_offset = 100;
+    const circle_width = 12
+    function create_humidity_chart_svg() {
+        if (probePoints.length > 0) {
+            let card_width = humidity_card.clientWidth;
+            let card_height = humidity_card.clientHeight;
+            if (!humidity_svg_card.children.length > 0) {
+                for(let i =0;i<=probePoints.length;i++) {
+                    let position_x = `${probePoints[i].col_on_image * cellWidth - cellWidth/2}`; //(i+1)*(((card_width-svg_offset)/probePoints.length)+2)
+                    let position_y = 100-((100/svg_range)*probePoints[i].humVal)
+                    let html = `
+                    <path class="ltr_path" d="M ${position_x} , ${(card_height-2)-((card_height/svg_range)*probePoints[i].humVal)} c 14.26 -2.36 , 33.34 0 , ${((card_width-svg_offset)/probePoints.length)-circle_width} ${i<(probePoints.length-1)?(298-((card_height/svg_range)*probePoints[i+1].humVal))-(298-((card_height/svg_range)*probePoints[i].humVal)):''}"/>
+                    <circle class="circle" cx="${position_x}" cy="${position_y}%" r="3.5" />
+                                `
+                    humidity_svg_card.insertAdjacentHTML("beforeend",html);
+                }
+            } else {
+                let circles = humidity_svg_card.querySelectorAll("circle");
+                let paths = humidity_svg_card.querySelectorAll("path");
+                for(let i=0;i<=probePoints.length;i++) {
+                    svg_range = humidity_threshold*2;
+                    let svg_humDiff = (probePoints[i].humVal - humidity_threshold).toFixed(2);
+                    let circle_color = "#fff";
+                    if (svg_humDiff < 0) {
+                        if (svg_humDiff >= -0.19) {
+                            circle_color = `#51fd92`;
+                        } else {
+                            circle_color = `#ff8800`;
+                        }
+                    } else {
+                        if (svg_humDiff <= 0.19) {
+                            circle_color = `#51fd92`;
+                        } else {
+                            circle_color = `#ff4444`;
+                        }
+                    }
+                    let position_x = `${probePoints[i].col_on_image * cellWidth - cellWidth/2}` //(i+1)*(((card_width-svg_offset)/probePoints.length)+2)
+                    let position_y = 100-((100/svg_range)*probePoints[i].humVal)
+                    circles[i].setAttribute("cy",`${position_y}%`);
+                    circles[i].setAttribute("cx",`${position_x}`);
+                    circles[i].style.fill = circle_color;
+                    paths[i].setAttribute("d",`M ${position_x} , ${(card_height-2)-((card_height/svg_range)*probePoints[i].humVal)} c 14.26 -2.36 , 33.34 0 , ${((card_width-svg_offset)/probePoints.length)-circle_width} ${i<(probePoints.length-1)?(298-((card_height/svg_range)*probePoints[i+1].humVal))-(298-((card_height/svg_range)*probePoints[i].humVal)):''}`);
+                }
+            }
+        }
+    }
+    const humidity_interval = setInterval(create_humidity_chart_svg,1000);
+</script>

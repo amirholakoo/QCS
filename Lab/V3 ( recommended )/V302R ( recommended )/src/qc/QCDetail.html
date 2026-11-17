@@ -1,0 +1,146 @@
+{% load to_jalali %}
+
+<html lang="fa" dir="rtl" >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Seyed Amirmohammad Mousavi | 09109945728">
+    <title>گزارشات کنترل کیفی</title>
+    <style>
+        @font-face {
+            font-family: 'IranYekan';
+            src: url('../fonts/eot/iranyekanwebregular.eot'); /* IE9 Compat Modes */
+            src: url('../fonts/eot/iranyekanwebregular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+                url('../fonts/woff2/iranyekanwebregular.woff2') format('woff2'), /* Modern Browsers */
+                url('../fonts/woff/iranyekanwebregular.woff') format('woff'), /* Pretty Modern Browsers */
+                url('../fonts/ttf/iranyekanwebregular.ttf') format('truetype'); /* Safari, Android, iOS */
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+            }
+
+            @font-face {
+            font-family: 'IranYekan';
+            src: url('../fonts/eot/iranyekanweblight.eot');
+            src: url('../fonts/eot/iranyekanweblight.eot?#iefix') format('embedded-opentype'),
+                url('../fonts/woff2/iranyekanweblight.woff2') format('woff2'),
+                url('../fonts/woff/iranyekanweblight.woff') format('woff'),
+                url('../fonts/ttf/iranyekanweblight.ttf') format('truetype');
+            font-weight: 300;
+            font-style: normal;
+            font-display: swap;
+            }
+
+            @font-face {
+            font-family: 'IranYekan';
+            src: url('../fonts/eot/iranyekanwebbold.eot');
+            src: url('../fonts/eot/iranyekanwebbold.eot?#iefix') format('embedded-opentype'),
+                url('../fonts/woff2/iranyekanwebbold.woff2') format('woff2'),
+                url('../fonts/woff/iranyekanwebbold.woff') format('woff'),
+                url('../fonts/ttf/iranyekanwebbold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        html {
+            direction: rtl;
+            font-family: 'IranYekan', Tahoma, sans-serif;
+        }
+        
+        body {
+            font-family: 'IranYekan', Tahoma, sans-serif;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            padding: 0 14px;
+            margin: 0 auto;
+        }
+        *, ::after, ::before {
+            box-sizing: border-box;
+        }
+        .card {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            border: 1px solid #dbdbdb;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .card span {
+            font-size: 0.9rem;
+        }
+        .back {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            padding: 10px;
+        }
+        .btn_back {
+            display: block;
+            padding: 8px 14px;
+            border-radius: 10px;
+            background-color: #dbdbdb;
+            color: #000;
+            text-decoration: none;
+        }
+        .devider {
+            border-left: 1px solid #dbdbdb;
+            padding-left: 20px;
+        }
+        h3 {
+            margin: 5px 0;
+            font-weight: 900;
+        }
+        h3 span {
+            font-weight: 400;
+        }
+        @media (max-width: 500px) {
+            .card {
+                justify-content: flex-start;
+                flex-wrap: wrap;
+                gap: 0;
+            }
+            .devider {
+                border-left: 0px solid #dbdbdb;
+                padding-left: 0;;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- <div class="back">
+            
+        </div> -->
+        <div class="card" style="max-height: 280px;justify-content: space-between;">
+            <h3>
+                <span>شناسه:</span>
+                QC-{{qc_detail.id}}
+                <span>عرض:</span>
+                {{qc_detail.loading_id.width|floatformat:-1}}</h3>
+                <a class="btn_back" href="{% url 'qc_list' %}">بازگشت</a>
+            <h3 class="devider"><span>نام مشتری:</span>
+                {{qc_detail.customer_id}}
+            </h3>
+        </div>
+        <div class="card" style="gap: 4px;">
+            {% for x in qc_detail.rollnumbers.all %}
+            <h2 style="padding: 6px;
+             background-color: #eee;
+             border: 1px solid #dbdbdb;
+             border-radius: 20px;
+             width: calc(50% - 4px);
+             text-align: center;
+             margin: 0;
+             ">{{x.roll_number}}</h2>
+            {% endfor %}
+        </div>
+        <br><br>
+    </div>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{% load static %}
+<html>
+    <head>
+        <script src="{% static 'base/js/jquery.min.js' %}"></script>
+    </head>
+    <body>
+        <a style="display:block;margin-top:30px;padding:8px 12px;background:#eee" href="/view/">back</a>
+        {% if log %}
+        <h3>Logs</h3>
+        <ul style="padding: 30px 40px;background: #eee;border-radius: 16px;overflow-y: scroll;">
+            <span style="display:block;margin-bottom:8px">base on date/time</span>
+        {% for x in log %}
+            <li style="display:flex;justify-content: space-between;margin-top:30px">
+                <img style="width:50%" src="{{x.path}}">
+                <h3 style="width:50%;padding:20px">
+                    datetime: {{x.date}} {{x.time}}
+                    <br>
+                    temp: {{x.temp}}
+                </h3>
+            </li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+    </body>
+</html>

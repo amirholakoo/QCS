@@ -35,6 +35,8 @@
         --main-color: #2563eb;
         --light-main-color: #eff4ff;
         --light-color: #9e9e9e;
+        --green: #76ffb0;
+        --red: #fd4a4a;
         --font-sm: 14px;
         --font-md: 16px;
         --font-lg: 17px;
@@ -42,6 +44,7 @@
         --font-xs: 13px;
         --border-color: #ededed;
         --radius: 10px;
+        --green: #76ffb0;
     }
 
     @font-face {
@@ -92,7 +95,7 @@
 {% include "base/header.html" %}
 {% endblock %}
 <div class="progressbar" id="progressbar">
-    <div class="progress bg-white p-4 rounded shadow d-flex align-items-center">
+    <div class="progress bg-white p-3 rounded shadow d-flex align-items-center">
         <h6 class="m-3">لطفا صبر کنید</h6>
         <div class="loader"></div>
     </div>
@@ -100,10 +103,31 @@
 {% block content %}{% endblock %}
 {% block footer %}{% endblock %}
 <div class="alert_parent" id="Alert"></div>
+<div class="AM_POPUP" id="AM_POPUP">
+    <div class="popup_object">
+        <div class="popup_header">
+            <h6></h6>
+            <span class="close_btn" onclick="AM_POPUP(false )">&times;</span>
+        </div>
+        <div class="popup_body">
+            {% include 'AM_Calendar/calendar.html' %}
+        </div>
+    </div>
+</div>
 <script src="{% static 'base/js/jquery-3.6.0.min.js' %}"></script>
 <script src="{% static 'base/js/bootstrap.min.js' %}"></script>
 <script src="{% static 'base/js/jquery.ajax.min.js' %}"></script>
+
+<!-- ============ api callback functions start ============ -->
+<script src="{% static 'paper/js/paper.js' %}?version={{version}}"></script>
+<script src="{% static 'material/js/material.js' %}?version={{version}}"></script>
+<script src="{% static 'brand/js/brand.js' %}?version={{version}}"></script>
+<script src="{% static 'production_machine/js/production_machine.js' %}?version={{version}}"></script>
+<!-- ============ api callback functions end ============ -->
+
 <script src="{% static 'base/js/main.js' %}?version={{version}}"></script>
+<script src="{% static 'base/js/script.js' %}?version={{version}}"></script>
+<script src="{% static 'base/js/api_handler.js' %}?version={{version}}"></script>
 
 {% block URL_HASH %}
 <script src="{% static 'base/js/URL_HASH.js' %}?version={{version}}"></script>

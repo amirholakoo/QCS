@@ -1,0 +1,78 @@
+{% load static %}
+<html>
+<head>
+    <script src="{% static 'base/js/jquery.min.js' %}"></script>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        input {
+            padding: 4px;
+            font-size: 18px;
+            width: 120px;
+        }
+    </style>
+    <script>
+        $(document).ready(function () {
+            $("input[data-temp]").on("change", function () {
+                let temp = $(this).data("temp");
+                let value = $(this).val();
+                $.ajax({
+                    url: "{% url 'save_input' %}",
+                    method: "POST",
+                    data: {
+                        "temp": temp,
+                        "value": value,
+                        "csrfmiddlewaretoken": "{{ csrf_token }}"
+                    },
+                    success: function (resp) {
+                        console.log("Saved:", resp);
+                    },
+                    error: function (err) {
+                        console.error("Error saving:", err);
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <ul>
+        {% for f in formuls %}
+        <li>formula {{forloop.counter}} = {{f}}</li>
+        {% endfor %}
+    </ul>
+    <table>
+        <tr>
+            <th>#</th>
+            <th>temp</th>
+            {% for f in formuls %}
+            <th>formula {{forloop.counter}}</th>
+            {% endfor %}
+            <th>device</th>
+        </tr>
+        {% for x in temps %}
+        <tr>
+            <td>{{forloop.counter}}</td>
+            <td>{{x.temp}}</td>
+            <td>{{x.f1}}</td>
+            <td>{{x.f2}}</td>
+            <td>{{x.f3}}</td>
+            <td>{{x.f4}}</td>
+            <td>{{x.f5}}</td>
+            <td>{{x.f6}}</td>
+            <td>
+                <input type="text" data-temp="{{x.temp}}" value="{{x.device|default:''}}">
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

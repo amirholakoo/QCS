@@ -1,7 +1,8 @@
 from django.urls import path,include
-from . import views
+from .views import *
 
 urlpatterns = [
-    path('', views.Index),
+    path('', Index),
+    path('current_date/', get_current_date)
     # path('login/',views.Login,name="baselogin")
 ]

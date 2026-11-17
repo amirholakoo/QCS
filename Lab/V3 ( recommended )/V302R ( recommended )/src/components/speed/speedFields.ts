@@ -1,0 +1,31 @@
+/**
+ * Speed form field definitions: label key (from model) and corresponding SpeedN key.
+ */
+export const SPEED_FIELDS: { labelKey: string; speedKey: keyof import('../types').Speed }[] = [
+  { labelKey: 'TOP_WIRE', speedKey: 'Speed1' },
+  { labelKey: 'Top_Pressure_Screen', speedKey: 'Speed2' },
+  { labelKey: 'Top_Fan', speedKey: 'Speed3' },
+  { labelKey: 'Top_Pulp', speedKey: 'Speed4' },
+  { labelKey: 'Top_Vacuum_Wire', speedKey: 'Speed5' },
+  { labelKey: 'HeadBox_Water_Pump', speedKey: 'Speed6' },
+  { labelKey: 'BOT_Wire', speedKey: 'Speed7' },
+  { labelKey: 'BOT_Pressure_Screen', speedKey: 'Speed8' },
+  { labelKey: 'BOT_Fan', speedKey: 'Speed9' },
+  { labelKey: 'Bot_Vacum_1', speedKey: 'Speed10' },
+  { labelKey: 'Bot_Vacum_2', speedKey: 'Speed11' },
+  { labelKey: 'Press_1', speedKey: 'Speed12' },
+  { labelKey: 'Press_2', speedKey: 'Speed13' },
+  { labelKey: 'Press_3', speedKey: 'Speed14' },
+  { labelKey: 'Felt_Vac_1', speedKey: 'Speed15' },
+  { labelKey: 'Felt_Vac_2', speedKey: 'Speed16' },
+  { labelKey: 'Dryer_1_Top', speedKey: 'Speed17' },
+  { labelKey: 'Dryer_1_Bottom', speedKey: 'Speed18' },
+  { labelKey: 'Dryer_2_Top', speedKey: 'Speed19' },
+  { labelKey: 'Dryer_2_Bottom', speedKey: 'Speed20' },
+  { labelKey: 'Size_Press', speedKey: 'Speed21' },
+  { labelKey: 'Baby_Roll', speedKey: 'Speed22' },
+  { labelKey: 'Post_Dryer_Top', speedKey: 'Speed23' },
+  { labelKey: 'Post_Dryer_Bottom', speedKey: 'Speed24' },
+  { labelKey: 'Calendar', speedKey: 'Speed25' },
+  { labelKey: 'Reel', speedKey: 'Speed26' },
+];

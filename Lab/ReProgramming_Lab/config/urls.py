@@ -5,9 +5,14 @@ from django.conf.urls.static import static
 from dashboard.views import Dashboard
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('base/', include('base.urls')),
     path('widgets/', include('AM_Calendar.urls')),
     path('accounts/', include('accounts.urls')),
-    path('', Dashboard)
+    path('paper/', include('paper.urls')),
+    path('material/', include('material.urls')),
+    path('production/', include('production_machine.urls')),
+    path('brand/', include('brand.urls')),
+    path('', Dashboard),
 ]
 
 

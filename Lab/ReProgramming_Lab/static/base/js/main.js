@@ -1,3 +1,4 @@
+
 // divider
 function card_number_divider(str) {
 	str = String(str);
@@ -19,7 +20,13 @@ function Progress(display = true) {
 }
 
 // alert
-function AM_alert({display=true,status = 'info', text=false,btns=false,obj=false}) {
+let ALERTS_TIMOUTS = []
+let alert_timeout_counter = 0;
+function AM_alert({display=true,status = 'info', text=false,btns=false,obj=false,progress = false}) {
+    if (ALERTS_TIMOUTS.length > 9) {
+        ALERTS_TIMOUTS = []
+    }
+    alert_timeout_counter++;
     clearTimeout(this.timeoutID)
     let elem = document.getElementById('Alert');
     let classname = `alert_child_${elem.children.length}`
@@ -36,7 +43,14 @@ function AM_alert({display=true,status = 'info', text=false,btns=false,obj=false
             </span>
             <div class="d-flex align-items-center ml-4 alert-text-card">
                 <div class="icon">
-                    <svg class="success" width="37" height="37" viewBox="0 0 37 37" fill="none" xmlns="http://www.w3.org/2000/svg">
+                ${
+                    progress
+                    ?
+                    `
+                    <span class="loader"></span>
+                    `
+                    :
+                    `<svg class="success" width="37" height="37" viewBox="0 0 37 37" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M18.5 36C28.125 36 36 28.125 36 18.5C36 8.875 28.125 1 18.5 1C8.875 1 1 8.875 1 18.5C1 28.125 8.875 36 18.5 36Z" stroke="#25B700" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M12 18.5L16.6612 23L26 14" stroke="#25B700" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -54,7 +68,8 @@ function AM_alert({display=true,status = 'info', text=false,btns=false,obj=false
                     <path d="M18.5 36C28.125 36 36 28.125 36 18.5C36 8.875 28.125 1 18.5 1C8.875 1 1 8.875 1 18.5C1 28.125 8.875 36 18.5 36Z" stroke="#FF0000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M13.5469 23.4524L23.4519 13.5474" stroke="#FF0000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M23.4519 23.4524L13.5469 13.5474" stroke="#FF0000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                    </svg>`
+                }
                 </div>
                 <h6 class="alert-text">
                     ${text}
@@ -70,14 +85,61 @@ function AM_alert({display=true,status = 'info', text=false,btns=false,obj=false
                 document.querySelector(`.${classname} .alert_btns`).insertAdjacentHTML('beforeend',`<a class="bg-light rounded px-3 py-2 mr-1" style="color:#333;" ${x.attr? x.attr.name+"='"+ x.attr.inner +"'":''} ${x.link? 'href='+x.link:'onclick="Am_alert({display:false,obj:this.parentElement.parentElement})"'}>${x.title}</a>`)
             }
         }
+
+        const alertElement = document.querySelector(`.${classname}`);
+
+        return {
+            element: alertElement,
+
+            close() {
+                if (!alertElement) {
+                    return;
+                }
+
+                AM_alert({
+                    display: false,
+                    obj: alertElement
+                });
+
+            }
+        };
   
-    } else {
+    } 
+    
+    
+    if (obj) {
+
         obj.remove();
-        elem.classList.remove('show_up');
-        classname = false
+
+        if (elem.children.length < 1) {
+            elem.classList.remove('show_up');
+        }
+
+        classname = false;
     }
-    setTimeout(()=>{if(classname){document.getElementsByClassName(classname)[0].remove();elem.classList.remove('show_up');};this.timeoutID=32567},10000)
-  }
+
+    const alert_target_timer = setTimeout(() => {
+
+        if (classname) {
+
+            const target =
+                document.getElementsByClassName(classname)[0];
+
+            if (target) {
+                target.remove();
+            }
+
+            if (elem.children.length < 1) {
+                elem.classList.remove('show_up');
+            }
+        }
+
+        this.timeoutID = alert_timeout_counter;
+
+    }, 10000);
+
+    ALERTS_TIMOUTS.push(alert_target_timer);
+}
 
 // url params | k => key -- v => value
 function Set_url_params(k,v) {
@@ -94,37 +156,6 @@ function Set_url_params(k,v) {
     //window.location.href = url;
     console.log(url)
 }
-
-// let data = {"آذربايجان شرقي":["اسكو","اهر","ایلخچی","باسمنج","بستان آباد","بناب","تبريز","تسوج","جلفا","خسروشهر","سراب","سهند","شبستر","صوفیان","مراغه","مرند","ملكان","ممقان","ميانه","هاديشهر","هريس","هشترود","ورزقان"],"آذربايجان غربي":["اروميه","اشنويه","بوكان","تكاب","خوي","سر دشت","سلماس","شاهين دژ","ماكو","مهاباد","مياندوآب","نقده","پلدشت","پيرانشهر","چالدران"],"اردبيل":["اردبيل","خلخال","مشگين شهر","نمين","نير","پارس آباد","گرمي"],"اصفهان":["آران و بيدگل","اردستان","اصفهان","باغ بهادران","تودشک","تيران","حاجي آباد","خميني شهر","خوانسار","درچه","دهاقان","زرين شهر","سميرم","شهرضا","عسگران","علويجه","فلاورجان","كاشان","مباركه","نجف آباد","نطنز","ورزنه","کوهپایه","گلپايگان"],"ايلام":["آبدانان","ايلام","ايوان","دره شهر","دهلران","سرابله","مهران"],"بوشهر":["اهرم","برازجان","بوشهر","جم","خورموج","دير","عسلویه","كنگان","کاکی","گناوه"],"تهران":["اسلامشهر","باقرشهر","بومهن","تجريش","تهران","دماوند","رباط كريم","رودهن","ري","شريف آباد","شهريار","فشم","فيروزكوه","قدس","قرچك","كهريزك","لواسان","ملارد","ورامين","پاكدشت","چهاردانگه"],"چهارمحال بختياري":["اردل","بروجن","شهركرد","فارسان","لردگان","چلگرد"],"خراسان جنوبي":["بيرجند","سربيشه","فردوس","قائن","نهبندان"],"خراسان رضوي":["تايباد","تربت جام","تربت حيدريه","خواف","درگز","سبزوار","سرخس","طبس","طرقبه","فريمان","قوچان","كاشمر","مشهد","نيشابور","چناران","گناباد"],"خراسان شمالي":["آشخانه","اسفراين","بجنورد","جاجرم","شيروان"],"خوزستان":["آبادان","انديمشك","اهواز","ايذه","ايرانشهر","باغ ملك","بندر امام خميني","بندر ماهشهر","بهبهان","حمیدیه","خرمشهر","دزفول","رامشیر","رامهرمز","سوسنگرد","شادگان","شادگان","شوش","شوشتر","لالي","مسجد سليمان","ملاثانی","هنديجان","هويزه"],"زنجان":["آب بر","ابهر","خدابنده","خرمدره","زنجان","قيدار","ماهنشان"],"سمنان":["ايوانكي","بسطام","دامغان","سمنان","شاهرود","گرمسار"],"سيستان و بلوچستان":["ايرانشهر","خاش","زابل","زاهدان","سراوان","سرباز","ميرجاوه","چابهار"],"فارس":["آباده","اردكان","ارسنجان","استهبان","اقليد","بوانات","جهرم","حاجي آباد","خرامه","خنج","داراب","زرقان","سروستان","سوريان","سپيدان","شيراز","صفاشهر","فراشبند","فسا","فيروز آباد","كازرون","لار","لامرد","مرودشت","مهر","کوار"],"قزوين":["آبيك","بوئين زهرا","تاكستان","قزوين"],"قم":["قم"],"کرج":["اشتهارد","طالقان","كرج","ماهدشت","نظرآباد","هشتگرد"],"كردستان":["بانه","بيجار","حسن آباد","سقز","سنندج","صلوات آباد","قروه","مريوان"],"كرمان":["انار","بافت","بردسير","بم","جيرفت","راور","رفسنجان","زرند","سيرجان","كرمان","كهنوج","کوهبنان"],"كرمانشاه":["اسلام آباد غرب","جوانرود","سنقر","صحنه","قصر شيرين","كرمانشاه","كنگاور","هرسين","پاوه"],"كهكيلويه و بويراحمد":["دهدشت","دوگنبدان","سي سخت","ياسوج","گچساران"],"گلستان":["آزاد شهر","آق قلا","راميان","علي آباد كتول","كردكوی","كلاله","گرگان","گنبد كاووس"],"گيلان":["آستارا","املش","تالش","رشت","رودبار","شفت","صومعه سرا","فومن","لاهیجان","لنگرود","ماسال","ماسوله","منجيل","هشتپر"],"لرستان":["ازنا","الشتر","اليگودرز","بروجرد","خرم آباد","دزفول","دورود","كوهدشت","ماهشهر","نور آباد"],"مازندران":["آمل","بابل","بابلسر","بلده","بهشهر","تنكابن","جويبار","رامسر","ساري","قائم شهر","محمود آباد","نكا","نور","نوشهر","چالوس"],"مركزي":["آشتيان","اراك","تفرش","خمين","دليجان","ساوه","شازند","محلات"],"هرمزگان":["بستك","بندر جاسك","بندر خمیر","بندر لنگه","بندرعباس","حاجي آباد","دهبارز","قشم","قشم","كيش","ميناب"],"همدان":["اسدآباد","بهار","رزن","ملاير","نهاوند","همدان"],"يزد":["ابركوه","اردكان","اشكذر","بافق","تفت","خضرآباد","زارچ","طبس","مهريز","ميبد","هرات","يزد"]};
-// `data` should be filled with provinces and their cities in json format
-
-$(document).ready(function() {
-	$('.ir-province').each(loadProvinces);
-	$('.ir-province').change(loadCities);
-});
-
-var loadProvinces = function() {
-	var element = $(this);
-	element.empty();
-	element.append($('<option></option>').attr('value', 'empty'));
-	$.each(data, function(province, list) {
-		var option = $('<option></option>').attr('value', province).text(province);
-		element.append(option);
-	});
-};
-
-var loadCities = function() {
-	var citySelector = $('.ir-city');
-	var selectedProvince = $(this).val();
-	var cityList = data[selectedProvince];
-
-	citySelector.empty();
-
-	$.each(cityList, function(index, city) {
-		var option = $('<option></option>').attr('value', city).text(city);
-		citySelector.append(option);
-	});
-};
 
 
 $(document).ready(function () {
@@ -152,3 +183,65 @@ function readURL(input) {
     }
     Progress(false);
 }
+
+
+// ============ POPUP START =============
+function AM_POPUP(display=true) {
+    const POPUP=document.getElementById("AM_POPUP");
+    if (display) {
+        POPUP.classList.add("active");
+    } else {
+        POPUP.classList.remove("active");
+    }
+}
+// ============ POPUP END =============
+
+
+// ============ DATA VALIDATION START =============
+const DATA_VALIDATORS_REGEXES = {
+    "time":/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+}
+for(const x of document.querySelectorAll("[data-validation]")) {
+    x.onkeyup = ()=> {
+        if(x.value) {
+            if(!DATA_VALIDATORS_REGEXES[x.dataset.validation].test(x.value)) {
+                x.style.borderColor="red"
+            } else {
+                x.style.borderColor=""
+            }
+        } else {
+            x.style.borderColor=""
+        }
+    }
+}
+// ============ DATA VALIDATION END =============
+
+
+// =========== record list view show more on scroll start =======
+let IsProcessingMoreTableData = false
+function DisplayMoreOnScroll() {
+    record_list.addEventListener('scroll', async () => {
+        if (record_list.scrollTop / (record_list.scrollHeight - record_list.clientHeight) >= 0.8 && !IsProcessingMoreTableData) {
+            
+            IsProcessingMoreTableData=true;
+            record_list.insertAdjacentHTML("beforeend",`
+                <span class="loader" style="display: block;margin: 12px auto;"></span>
+            `);
+            //record_list.scrollTop = record_list.scrollHeight;
+            PAGE_API.paper_dashboard[0].url = `paper/roll/all?page=${PaperDashboardPage?PaperDashboardPage:1}`
+            let config = PAGE_API.paper_dashboard[0]
+            let result = await APIRequest(config);
+            if (result.pagination.total_pages > PaperDashboardPage) {
+                PaperDashboardPage=result.pagination.page+1;
+                IsProcessingMoreTableData=false;
+            } else {
+                IsProcessingMoreTableData=true;
+            }
+            let loaders = record_list.querySelectorAll(".loader")
+            for(const x of loaders) {
+                x.remove()
+            }
+        }
+    });
+}
+// =========== record list view show more on scroll end =======

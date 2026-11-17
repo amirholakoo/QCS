@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-import random,time, json, requests, os, base64
+import random,time, json, requests, os, base64, jdatetime
 from django.http import JsonResponse
 
 def SendApi(is_post=True,url="",header={},params={},body={}):
@@ -20,3 +20,8 @@ def SendApi(is_post=True,url="",header={},params={},body={}):
 def Index(request):
     return render(request,"base/index.html")
 
+
+def get_current_date(request):
+    return JsonResponse(
+            {"status": "success","result":str(jdatetime.datetime.today().date())}
+        )

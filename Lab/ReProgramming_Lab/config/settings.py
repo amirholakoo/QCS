@@ -37,10 +37,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'base',
     'AM_Calendar',
     'accounts',
     'dashboard',
     'paper',
+    'material',
+    'production_machine',
+    'brand',
 ]
 
 MIDDLEWARE = [
@@ -66,6 +70,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'AM_Calendar.context_processors.calendar_details',
             ],
         },
     },
